@@ -2,13 +2,6 @@
 
 > AI-powered route optimization that prioritizes safety over speed by analyzing road hazards, live weather conditions, real-time traffic, and environmental factors.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![React 18](https://img.shields.io/badge/react-18.0+-61dafb.svg)](https://reactjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com/)
-
----
-
 ## 🎯 Overview
 
 ArgusAI is an intelligent routing system that calculates the safest path between two points by considering:
@@ -61,22 +54,6 @@ ArgusAI is an intelligent routing system that calculates the safest path between
 - **Emergency contact alerts**: SMS notifications to family
 - **Incident report generation**: Police FIR, insurance claims, medical handoff
 - **Device registration**: Link riders to emergency response networks
-
----
-
-## 📸 Screenshots
-
-### Route Comparison
-![Route Comparison](docs/screenshots/route-comparison.png)
-
-### Journey Tracking
-![Journey Tracking](docs/screenshots/journey-tracking.png)
-
-### Feedback System
-![Feedback System](docs/screenshots/feedback-system.png)
-
-### Dashboard
-![Dashboard](docs/screenshots/dashboard.png)
 
 ---
 
