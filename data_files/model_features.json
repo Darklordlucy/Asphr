@@ -1,1 +1,0 @@
-["highway_encoded", "maxspeed", "lanes", "oneway_encoded", "surface_encoded", "is_dead_end", "junction_complexity", "length", "bridge_encoded", "tunnel_encoded", "pothole_count", "crash_count", "cluster_present", "blackspot_present", "hour_of_day", "day_of_week", "is_rush_hour", "is_night", "precipitation_mm", "visibility_km", "windspeed_kmh"]
