@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[mypy]
+psycopg2-binary
+geoalchemy2
+shapely
+networkx
+osmnx
+scikit-learn
+torch
+pandas
+numpy
+httpx
+pydantic-settings
+asyncpg
