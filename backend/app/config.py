@@ -22,7 +22,20 @@ database_url = settings.DATABASE_URL
 if database_url.startswith("postgresql://"):
     database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-engine = create_async_engine(database_url, pool_pre_ping=True)
+# Configure the async engine to be robust and compatible with Supabase/Supavisor connection pooling.
+# Supabase transaction pooler (port 6543) doesn't support prepared statements, 
+# so we disable the prepared statement cache in asyncpg.
+engine = create_async_engine(
+    database_url,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
+    pool_recycle=1800,
+    connect_args={
+        "prepared_statement_cache_size": 0,
+    }
+)
+
 AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 
