@@ -1,3 +1,12 @@
+import sys
+import os
+from pathlib import Path
+
+# Add backend directory to sys.path to resolve 'app' module imports
+backend_dir = str(Path(__file__).resolve().parent.parent)
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -5,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings, AsyncSessionLocal
 from app.routers import health, geocode, iot, routes
 from app.algorithms.graph_builder import GraphManager, refresh_graph_periodically
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

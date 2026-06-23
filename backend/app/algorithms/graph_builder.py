@@ -1,6 +1,8 @@
 import os
 import re
 import math
+import json
+import time
 import asyncio
 import datetime
 from typing import Dict, Tuple, List, Optional
@@ -93,14 +95,197 @@ class GraphManager:
                     self.last_updated = datetime.datetime.now()
                 except Exception as e:
                     print(f"Failed to load cached full graph: {e}. Downloading instead.")
-            
+
             if self.graph is None:
                 # Download and build from tiles
                 print("No cached full graph found. Starting tiled download...")
                 self.graph = self.download_and_build_graph()
                 self.last_updated = datetime.datetime.now()
-        
+
         return self.graph
+
+    # ------------------------------------------------------------------
+    # Private helpers for resilient tile downloading
+    # ------------------------------------------------------------------
+
+    def _load_manifest(self) -> dict:
+        """Load the tile download manifest from cache_dir (tracks ok/empty/failed)."""
+        path = os.path.join(self.cache_dir, "download_manifest.json")
+        if os.path.exists(path):
+            with open(path) as f:
+                return json.load(f)
+        return {}
+
+    def _save_manifest(self, manifest: dict):
+        """Persist the manifest so downloads survive Colab/process restarts."""
+        path = os.path.join(self.cache_dir, "download_manifest.json")
+        with open(path, "w") as f:
+            json.dump(manifest, f, indent=2)
+
+    def _split_into_quadrants(self, bbox: Tuple) -> List[Tuple]:
+        """Split a (min_lon, min_lat, max_lon, max_lat) bbox into 4 equal quadrants."""
+        min_lon, min_lat, max_lon, max_lat = bbox
+        mid_lon = (min_lon + max_lon) / 2
+        mid_lat = (min_lat + max_lat) / 2
+        return [
+            (min_lon, min_lat, mid_lon, mid_lat),   # SW
+            (mid_lon, min_lat, max_lon, mid_lat),   # SE
+            (min_lon, mid_lat, mid_lon, max_lat),   # NW
+            (mid_lon, mid_lat, max_lon, max_lat),   # NE
+        ]
+
+    def _is_connection_issue(self, e: Exception) -> bool:
+        """True for network/connectivity failures (not data-volume timeouts).
+        Splitting tiles doesn't fix these — only waiting + retrying does."""
+        try:
+            import requests as req_lib
+            conn_types = (
+                req_lib.exceptions.ConnectionError,
+                req_lib.exceptions.Timeout,
+            )
+        except ImportError:
+            conn_types = ()
+        return isinstance(
+            e, conn_types + (ConnectionError, ConnectionResetError, OSError, TimeoutError)
+        )
+
+    def _download_tile_recursive(
+        self,
+        bbox: Tuple,
+        tile_id: str,
+        manifest: dict,
+        depth: int = 0,
+        max_depth: int = 3,
+        max_retries: int = 2,
+        max_conn_retries: int = 5,
+    ) -> Optional[nx.MultiDiGraph]:
+        """
+        Download one bbox tile. On connection errors: retry the SAME tile size
+        with exponential backoff (splitting won't help if the server is down).
+        On data-volume / timeout errors: retry twice then recursively split into
+        4 quadrants (up to max_depth). Completed tiles are cached to disk and
+        skipped on re-runs via the manifest.
+        """
+        status = manifest.get(tile_id, {}).get("status")
+
+        # Already finished in a previous run — reload from disk cache
+        if status == "ok":
+            cache_path = os.path.join(self.cache_dir, f"tile_{tile_id}.graphml")
+            if os.path.exists(cache_path):
+                try:
+                    g = ox.load_graphml(cache_path)
+                    print(f"[{tile_id}] loaded from cache ({len(g.nodes)} nodes)")
+                    return g
+                except Exception:
+                    pass  # corrupted cache — fall through to re-download
+        elif status == "empty":
+            return None
+
+        cache_path = os.path.join(self.cache_dir, f"tile_{tile_id}.graphml")
+        min_lon, min_lat, max_lon, max_lat = bbox
+        conn_failures = 0
+        data_failures = 0
+
+        while True:
+            try:
+                g = ox.graph_from_bbox(
+                    bbox=(min_lon, min_lat, max_lon, max_lat),
+                    network_type="drive",
+                    simplify=True,
+                )
+                ox.save_graphml(g, cache_path)
+                manifest[tile_id] = {
+                    "status": "ok",
+                    "nodes": len(g.nodes),
+                    "edges": len(g.edges),
+                    "depth": depth,
+                }
+                self._save_manifest(manifest)
+                print(
+                    f"[{tile_id}] OK -- {len(g.nodes)} nodes, "
+                    f"{len(g.edges)} edges (depth {depth})"
+                )
+                return g
+
+            except Exception as e:
+                msg = str(e).lower()
+
+                # --- connectivity failure: wait longer, retry same tile ---
+                if self._is_connection_issue(e):
+                    conn_failures += 1
+                    if conn_failures > max_conn_retries:
+                        manifest[tile_id] = {
+                            "status": "failed",
+                            "depth": depth,
+                            "reason": "connection",
+                        }
+                        self._save_manifest(manifest)
+                        print(
+                            f"[{tile_id}] giving up after {max_conn_retries} "
+                            f"connection retries -- re-run cell to retry"
+                        )
+                        return None
+                    wait = min(20 * conn_failures, 120)
+                    print(
+                        f"[{tile_id}] connection issue ({type(e).__name__}), "
+                        f"retry {conn_failures}/{max_conn_retries} in {wait}s "
+                        f"(NOT splitting -- same tile size)"
+                    )
+                    time.sleep(wait)
+                    continue  # retry the exact same polygon
+
+                # --- empty area (water / park / no roads) ---
+                if (
+                    "insufficient" in msg
+                    or "found no graph" in msg
+                    or "no data" in msg
+                ):
+                    manifest[tile_id] = {"status": "empty", "depth": depth}
+                    self._save_manifest(manifest)
+                    print(f"[{tile_id}] empty (no roads -- likely water/park)")
+                    return None
+
+                # --- data-volume / oversized response: limited retries then split ---
+                data_failures += 1
+                if data_failures >= max_retries:
+                    break
+                wait = 5 * data_failures
+                print(
+                    f"[{tile_id}] attempt {data_failures}/{max_retries} failed "
+                    f"({type(e).__name__}); retrying in {wait}s"
+                )
+                time.sleep(wait)
+
+        # Exhausted retries for data-volume reasons — split into quadrants
+        if depth < max_depth:
+            print(f"[{tile_id}] splitting into quadrants (depth {depth} -> {depth + 1})")
+            sub_graphs = []
+            for qi, q_bbox in enumerate(self._split_into_quadrants(bbox)):
+                g = self._download_tile_recursive(
+                    q_bbox,
+                    f"{tile_id}_{qi}",
+                    manifest,
+                    depth=depth + 1,
+                    max_depth=max_depth,
+                    max_retries=max_retries,
+                    max_conn_retries=max_conn_retries,
+                )
+                if g is not None:
+                    sub_graphs.append(g)
+            return nx.compose_all(sub_graphs) if sub_graphs else None
+        else:
+            manifest[tile_id] = {
+                "status": "failed",
+                "depth": depth,
+                "reason": "data_volume",
+            }
+            self._save_manifest(manifest)
+            print(f"[{tile_id}] FAILED at max recursion depth -- skipped")
+            return None
+
+    # ------------------------------------------------------------------
+    # Public download entry-point (signature unchanged)
+    # ------------------------------------------------------------------
 
     def download_and_build_graph(self, grid_rows: int = 4, grid_cols: int = 4) -> nx.MultiDiGraph:
         """Divide Mumbai bounding box into tiles, download drive network for each, and merge them."""
@@ -112,8 +297,9 @@ class GraphManager:
         lat_step = (max_lat - min_lat) / grid_rows
         lon_step = (max_lon - min_lon) / grid_cols
 
+        manifest = self._load_manifest()
         graphs = []
-        
+
         print(f"Downloading Mumbai road network in a {grid_rows}x{grid_cols} grid of tiles...")
 
         for r in range(grid_rows):
@@ -123,36 +309,20 @@ class GraphManager:
                 tile_min_lon = min_lon + c * lon_step
                 tile_max_lon = tile_min_lon + lon_step
 
-                cache_filename = f"tile_{r}_{c}.graphml"
-                cache_filepath = os.path.join(self.cache_dir, cache_filename)
+                tile_id = f"t{r}_{c}"
+                bbox = (tile_min_lon, tile_min_lat, tile_max_lon, tile_max_lat)
 
-                # Check local cache first
-                if os.path.exists(cache_filepath):
-                    try:
-                        g = ox.load_graphml(cache_filepath)
-                        graphs.append(g)
-                        print(f"Loaded tile [{r},{c}] from cache.")
-                        continue
-                    except Exception as e:
-                        print(f"Failed to load cache for tile [{r},{c}], re-downloading. Error: {e}")
-
-                # Download if not cached or cache corrupted
-                try:
-                    print(f"Downloading tile [{r},{c}]: lat({tile_min_lat:.3f} to {tile_max_lat:.3f}), lon({tile_min_lon:.3f} to {tile_max_lon:.3f})...")
-                    g = ox.graph_from_bbox(
-                        north=tile_max_lat,
-                        south=tile_min_lat,
-                        east=tile_max_lon,
-                        west=tile_min_lon,
-                        network_type="drive",
-                        simplify=True
-                    )
-                    # Save individual tile to cache
-                    ox.save_graphml(g, cache_filepath)
+                g = self._download_tile_recursive(bbox, tile_id, manifest)
+                if g is not None:
                     graphs.append(g)
-                except Exception as e:
-                    # Catch empty response/no roads error (e.g. mostly water/ocean tile)
-                    print(f"Skipping empty or failed tile [{r},{c}]: {str(e)}")
+                time.sleep(1)   # polite gap between Overpass requests
+
+        failed = [k for k, v in manifest.items() if v.get("status") == "failed"]
+        if failed:
+            print(
+                f"\nWarning: {len(failed)} tile(s) ultimately failed "
+                f"-- re-run get_graph() / download_and_build_graph() to retry: {failed}"
+            )
 
         if not graphs:
             raise Exception("No sub-graphs were successfully loaded or downloaded.")
@@ -166,21 +336,21 @@ class GraphManager:
         for u, v, k, data in mumbai_graph.edges(keys=True, data=True):
             node_u = mumbai_graph.nodes[u]
             node_v = mumbai_graph.nodes[v]
-            
+
             # Calculate bearing
             bearing = calculate_bearing(node_u['y'], node_u['x'], node_v['y'], node_v['x'])
             data['bearing'] = bearing
 
             # Calculate tortuosity (windingness)
             length = data.get('length', 0.0)
-            euclidean_dist = ox.distance.great_circle_vec(node_u['y'], node_u['x'], node_v['y'], node_v['x'])
+            euclidean_dist = ox.distance.great_circle(node_u['y'], node_u['x'], node_v['y'], node_v['x'])
             data['tortuosity'] = max(1.0, length / euclidean_dist) if euclidean_dist > 0.1 else 1.0
 
         # Cache the final composed graph
         mumbai_full_path = os.path.join(self.cache_dir, "mumbai_full.graphml")
         ox.save_graphml(mumbai_graph, mumbai_full_path)
         print(f"Composed graph saved to local cache: {mumbai_full_path}")
-        
+
         return mumbai_graph
 
     async def sync_graph_to_db(self, db: AsyncSession):
@@ -281,13 +451,13 @@ class GraphManager:
         # Enrich each edge
         for u, v, k, data in g.edges(keys=True, data=True):
             segment_id = segment_map.get((u, v))
-            
+
             # Default parameters
             length = float(data.get('length', 1.0))
             road_type = data.get('highway')
             if isinstance(road_type, list):
                 road_type = road_type[0]
-            
+
             # Determine speed limits
             osm_maxspeed = parse_max_speed(data.get('maxspeed'))
             base_speed = osm_maxspeed or default_speeds.get(road_type, 30)
@@ -297,7 +467,7 @@ class GraphManager:
             # Fallback/Safety speed capping
             current_speed = max(5.0, min(current_speed, float(base_speed)))
             speed_mps = current_speed / 3.6
-            
+
             # Fastest Weight (travel time in seconds)
             data['weight_fastest'] = length / (speed_mps + 1e-5)
 
@@ -316,7 +486,7 @@ class GraphManager:
                     elif cond.lower() in ["fog", "mist"]:
                         weather_penalty = 0.2
                     break
-            
+
             # Safest Weight (distance scaled by hazards and weather)
             data['weight_safest'] = length * (1.0 + hazard_score) * (1.0 + weather_penalty)
 
@@ -329,7 +499,7 @@ class GraphManager:
             # Popularity density is the sum of nearby scores within 500m
             nearby_popularity = 0.0
             for pt, score in popular_points:
-                dist = ox.distance.great_circle_vec(g.nodes[u]['y'], g.nodes[u]['x'], pt.y, pt.x)
+                dist = ox.distance.great_circle(g.nodes[u]['y'], g.nodes[u]['x'], pt.y, pt.x)
                 if dist <= 500:
                     nearby_popularity += score
 

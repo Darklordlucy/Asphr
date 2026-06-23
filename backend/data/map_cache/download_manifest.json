@@ -1,0 +1,98 @@
+{
+  "t0_0": {
+    "status": "ok",
+    "nodes": 7476,
+    "edges": 16624,
+    "depth": 0
+  },
+  "t0_1": {
+    "status": "ok",
+    "nodes": 1211,
+    "edges": 2625,
+    "depth": 0
+  },
+  "t0_2": {
+    "status": "ok",
+    "nodes": 4323,
+    "edges": 10024,
+    "depth": 0
+  },
+  "t0_3": {
+    "status": "ok",
+    "nodes": 4676,
+    "edges": 11289,
+    "depth": 0
+  },
+  "t1_0": {
+    "status": "ok",
+    "nodes": 8757,
+    "edges": 19875,
+    "depth": 0
+  },
+  "t1_1": {
+    "status": "ok",
+    "nodes": 10123,
+    "edges": 22964,
+    "depth": 0
+  },
+  "t1_2": {
+    "status": "ok",
+    "nodes": 8419,
+    "edges": 19695,
+    "depth": 0
+  },
+  "t1_3": {
+    "status": "ok",
+    "nodes": 3002,
+    "edges": 7063,
+    "depth": 0
+  },
+  "t2_0": {
+    "status": "ok",
+    "nodes": 2845,
+    "edges": 6363,
+    "depth": 0
+  },
+  "t2_1": {
+    "status": "ok",
+    "nodes": 3227,
+    "edges": 6966,
+    "depth": 0
+  },
+  "t2_2": {
+    "status": "ok",
+    "nodes": 7397,
+    "edges": 17072,
+    "depth": 0
+  },
+  "t2_3": {
+    "status": "ok",
+    "nodes": 8916,
+    "edges": 20551,
+    "depth": 0
+  },
+  "t3_0": {
+    "status": "ok",
+    "nodes": 5932,
+    "edges": 13881,
+    "depth": 0
+  },
+  "t3_1": {
+    "status": "ok",
+    "nodes": 2152,
+    "edges": 4896,
+    "depth": 0
+  },
+  "t3_2": {
+    "status": "ok",
+    "nodes": 1348,
+    "edges": 3189,
+    "depth": 0
+  },
+  "t3_3": {
+    "status": "ok",
+    "nodes": 1693,
+    "edges": 4214,
+    "depth": 0
+  }
+}
