@@ -453,7 +453,13 @@ class GraphManager:
             segment_id = segment_map.get((u, v))
 
             # Default parameters
-            length = float(data.get('length', 1.0))
+            length = data.get('length', 1.0)
+            if isinstance(length, list):
+                length = length[0]
+            try:
+                length = float(length)
+            except (ValueError, TypeError):
+                length = 1.0
             road_type = data.get('highway')
             if isinstance(road_type, list):
                 road_type = road_type[0]
@@ -473,6 +479,7 @@ class GraphManager:
 
             # --- 2. Compute Hazards ---
             hazard_score = hazards.get(segment_id, 0.0)
+            data['hazard_score'] = hazard_score
 
             # --- 3. Compute Weather Penalty ---
             weather_penalty = 0.0
@@ -493,6 +500,12 @@ class GraphManager:
             # --- 4. Straightest Weight params (Windingness & Bearings) ---
             # Standard distance scaled by tortuosity (winding curves are penalized)
             tortuosity = data.get('tortuosity', 1.0)
+            if isinstance(tortuosity, list):
+                tortuosity = tortuosity[0]
+            try:
+                tortuosity = float(tortuosity)
+            except (ValueError, TypeError):
+                tortuosity = 1.0
             data['weight_straightest'] = length * tortuosity
 
             # --- 5. Compute Popularity Weight ---

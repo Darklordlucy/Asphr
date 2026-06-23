@@ -183,7 +183,8 @@ class RouteOptimizer:
                 "source_node": u,
                 "target_node": v,
                 "length_meters": length,
-                "road_type": edge_data.get("highway", "unclassified")
+                "road_type": edge_data.get("highway", "unclassified"),
+                "hazard_score": edge_data.get("hazard_score", 0.0)
             })
 
         # Append final destination node coordinate
@@ -198,7 +199,7 @@ class RouteOptimizer:
         hazard_sum = 0.0
         for segment in segments:
             # Fall back to 0 if not set
-            hazard_sum += G[segment["source_node"]][segment["target_node"]][0].get("hazard_score", 0.0)
+            hazard_sum += segment.get("hazard_score", 0.0)
         avg_hazard = hazard_sum / len(segments) if segments else 0.0
 
         return {
