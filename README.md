@@ -1,4 +1,4 @@
-# Asphr Navigation Ecosystem — Strategic Build Guide
+# Asphr Ecosystem — Strategic Build Guide
 *A Scale.ai-style execution playbook for hackathon dominance*
 
 ---
@@ -18,7 +18,7 @@ Your hardware is a **data moat** — the IoT sensors create proprietary ground-t
 Create a monorepo with clear separation of concerns for Railway + Vercel deployability.
 
 ```
-asphr-navigation/
+Asphr/
 ├── backend/                          # Python/FastAPI → Railway
 │   ├── app/
 │   │   ├── __init__.py
