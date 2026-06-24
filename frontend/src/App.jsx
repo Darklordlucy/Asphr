@@ -1,16 +1,20 @@
 import React from 'react';
-import Navbar from './components/Navbar';
-import HeroContent from './components/HeroContent';
+import { Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Maps from './pages/Maps';
+import RoutesPage from './pages/Routes';
+import Services from './pages/Services';
+import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
-    <div className="relative h-screen w-full bg-[url('/bg.jpeg')] bg-cover bg-center bg-no-repeat overflow-hidden font-sans">
-      {/* Dark overlay gradient to ensure text readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none"></div>
-
-      <Navbar />
-      <HeroContent />
-    </div>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/maps" element={<Maps />} />
+      <Route path="/routes" element={<RoutesPage />} />
+      <Route path="/services" element={<Services />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+    </Routes>
   );
 }
 

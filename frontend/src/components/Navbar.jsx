@@ -1,16 +1,14 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const Logo = () => (
-  <div className="flex items-center">
-    <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-3">
-      {/* A rough approximation of the ASPHR logo (overlapping angular shapes) */}
-      <path d="M40 80 L50 20 L60 80" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M30 60 L70 60" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M15 95 L50 10 L85 95" stroke="white" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-    <span className="font-heading font-bold text-2xl tracking-widest text-white">ASPHR</span>
-  </div>
+const Logo = ({ isLight }) => (
+  <Link to="/" className="flex items-center">
+    <img 
+      src="/image.png" 
+      alt="ASPHR Logo" 
+      className={`h-16 object-contain transition-all ${isLight ? 'invert brightness-50' : ''}`} 
+    />
+  </Link>
 );
 
 const ButtonLogo = () => (
@@ -20,17 +18,19 @@ const ButtonLogo = () => (
   </svg>
 );
 
-const Navbar = () => {
+const Navbar = ({ theme = 'dark' }) => {
+  const isLight = theme === 'light';
+  const linkClass = `transition-colors hover:text-brand-yellow ${isLight ? 'text-brand-dark/90 font-semibold' : 'text-white/90'}`;
+
   return (
     <nav className="flex items-center justify-between px-10 py-6 absolute top-0 w-full z-50">
-      <Logo />
+      <Logo isLight={isLight} />
       
       <div className="hidden md:flex items-center space-x-10 text-sm font-medium">
-        <a href="#" className="hover:text-brand-yellow transition-colors text-white/90">Maps</a>
-        <a href="#" className="hover:text-brand-yellow transition-colors text-white/90">Routes</a>
-        <a href="#" className="hover:text-brand-yellow transition-colors text-white/90">Traffic</a>
-        <a href="#" className="hover:text-brand-yellow transition-colors text-white/90">Explore</a>
-        <a href="#" className="hover:text-brand-yellow transition-colors text-white/90">Asphr IoT</a>
+        <Link to="/maps" className={linkClass}>Maps</Link>
+        <Link to="/routes" className={linkClass}>Routes</Link>
+        <Link to="/services" className={linkClass}>Services</Link>
+        <Link to="/dashboard" className={linkClass}>Dashboard</Link>
       </div>
 
       <button className="bg-[#0F2027] hover:bg-black text-white px-6 py-2.5 rounded-full font-sans font-medium text-sm flex items-center transition-all hover:scale-105 active:scale-95 shadow-xl border border-white/10">

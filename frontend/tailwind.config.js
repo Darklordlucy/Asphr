@@ -18,7 +18,9 @@ export default {
           green: '#4CAF50',
           orange: '#FF9800',
           blue: '#2196F3',
-          purple: '#9C27B0'
+          purple: '#9C27B0',
+          oldlace: '#FFF8EB',
+          sandytan: '#E19C63'
         }
       }
     },
