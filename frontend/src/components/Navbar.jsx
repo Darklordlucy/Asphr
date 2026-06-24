@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const Logo = ({ isLight }) => (
+const Logo = () => (
   <Link to="/" className="flex items-center">
     <img 
       src="/image.png" 
       alt="ASPHR Logo" 
-      className={`h-16 object-contain transition-all ${isLight ? 'invert brightness-50' : ''}`} 
+      className="h-16 object-contain transition-all" 
     />
   </Link>
 );
@@ -20,13 +20,15 @@ const ButtonLogo = () => (
 
 const Navbar = ({ theme = 'dark' }) => {
   const isLight = theme === 'light';
-  const linkClass = `transition-colors hover:text-brand-yellow ${isLight ? 'text-brand-dark/90 font-semibold' : 'text-white/90'}`;
+  // Force black text and larger font size
+  const linkClass = `transition-colors hover:text-brand-yellow text-brand-dark font-bold`;
 
   return (
-    <nav className="flex items-center justify-between px-10 py-6 absolute top-0 w-full z-50">
+    <nav className="flex items-center justify-between px-10 py-3 absolute top-0 w-full z-50">
       <Logo isLight={isLight} />
       
-      <div className="hidden md:flex items-center space-x-10 text-sm font-medium">
+      <div className="hidden md:flex items-center space-x-10 text-lg">
+        <Link to="/" className={linkClass}>Home</Link>
         <Link to="/maps" className={linkClass}>Maps</Link>
         <Link to="/routes" className={linkClass}>Routes</Link>
         <Link to="/services" className={linkClass}>Services</Link>

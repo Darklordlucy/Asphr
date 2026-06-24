@@ -130,25 +130,28 @@ const ChaptersSection = () => {
             const translateY = isVisible ? (1 - localProgress) * 120 : 150;
             const scale = isVisible ? 0.9 + (localProgress * 0.1) : 0.85;
             
+            // Fast fade in to prevent sudden appearance/disappearance, but fully opaque once stacked
+            const opacity = isVisible ? Math.min(1, localProgress * 5) : 0;
+            
             return (
               <div
                 key={index}
                 className="absolute"
                 style={{
                   zIndex: index + 10,
-                  opacity: isVisible ? 1 : 0,
+                  opacity: opacity,
                   transform: `translate3d(0, ${translateY}px, 0) scale(${scale})`,
                   pointerEvents: index === activeIndex ? 'auto' : 'none',
                   maxWidth: '100%',
                   maxHeight: '100%',
-                  willChange: 'transform'
+                  willChange: 'transform, opacity'
                 }}
               >
-                <div className="bg-white p-3 rounded-3xl border border-brand-dark/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+                <div className="bg-white p-1 md:p-1.5 rounded-xl border border-brand-dark/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
                   <img
                     src={src}
                     alt={`Chapter ${index}`}
-                    className="rounded-2xl object-contain max-h-[50vh] md:max-h-[75vh] w-auto"
+                    className="rounded-lg object-contain max-h-[50vh] md:max-h-[75vh] w-auto"
                     loading="lazy"
                   />
                 </div>
