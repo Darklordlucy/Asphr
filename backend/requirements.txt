@@ -13,3 +13,6 @@ numpy
 httpx
 pydantic-settings
 asyncpg
+joblib
+apscheduler
+

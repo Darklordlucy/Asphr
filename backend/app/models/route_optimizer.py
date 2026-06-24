@@ -10,13 +10,17 @@ class RouteOptimizer:
     def __init__(self):
         self.manager = GraphManager.get_instance()
 
-    def get_vehicle_filtered_graph(self, G: nx.MultiDiGraph, vehicle_type: str) -> nx.MultiDiGraph:
+    def get_vehicle_filtered_graph(self, G: nx.MultiDiGraph, vehicle_type: str, avoid_tolls: bool = False) -> nx.MultiDiGraph:
         """Create a filtered view of the graph based on vehicle constraints."""
         vehicle_type = vehicle_type.lower()
         
         def filter_edge(u, v, k) -> bool:
             data = G[u][v][k]
             
+            # Avoid tolls if requested
+            if avoid_tolls and data.get("is_toll", False):
+                return False
+                
             # 1. Supercars avoid speed bumps
             if vehicle_type == "supercar":
                 # Check graph attribute or database override
@@ -50,7 +54,8 @@ class RouteOptimizer:
         end_lat: float, 
         end_lon: float, 
         route_type: str, 
-        vehicle_type: str
+        vehicle_type: str,
+        avoid_tolls: bool = False
     ) -> Dict[str, Any]:
         """Snaps input coordinates, filters by vehicle, selects weight, and computes path."""
         G = self.manager.get_graph()
@@ -64,7 +69,7 @@ class RouteOptimizer:
             raise ValueError("Start and end locations are too close to each other.")
 
         # 2. Filter graph by vehicle constraints
-        filtered_G = self.get_vehicle_filtered_graph(G, vehicle_type)
+        filtered_G = self.get_vehicle_filtered_graph(G, vehicle_type, avoid_tolls=avoid_tolls)
         
         # If the start or end node is disconnected due to filtering, fall back to full graph
         if start_node not in filtered_G:
@@ -179,12 +184,22 @@ class RouteOptimizer:
             else:
                 route_coords.append((node_u['x'], node_u['y']))
                 
+            # Map congestion level to traffic text
+            cong_lvl = edge_data.get("congestion_level", 0)
+            traffic_map = {
+                0: "free-flow",
+                1: "light",
+                2: "moderate",
+                3: "heavy",
+                4: "standstill"
+            }
+            traffic_str = traffic_map.get(cong_lvl, "free-flow")
+
             segments.append({
-                "source_node": u,
-                "target_node": v,
-                "length_meters": length,
-                "road_type": edge_data.get("highway", "unclassified"),
-                "hazard_score": edge_data.get("hazard_score", 0.0)
+                "id": edge_data.get("segment_id"),
+                "hazard": edge_data.get("hazard_score", 0.0),
+                "traffic": traffic_str,
+                "hazard_score": edge_data.get("hazard_score", 0.0) # Keep for compatibility
             })
 
         # Append final destination node coordinate
@@ -195,19 +210,22 @@ class RouteOptimizer:
         geojson_coords = [[lon, lat] for lon, lat in route_coords]
 
         # Calculate average hazard score for path
-        # In a real run, this will map to db overrides.
         hazard_sum = 0.0
         for segment in segments:
-            # Fall back to 0 if not set
             hazard_sum += segment.get("hazard_score", 0.0)
         avg_hazard = hazard_sum / len(segments) if segments else 0.0
+
+        # Strip internal temporary field
+        for seg in segments:
+            seg.pop("hazard_score", None)
 
         return {
             "origin_node": start_node,
             "destination_node": end_node,
             "coordinates": geojson_coords,
             "distance_km": round(total_distance / 1000.0, 2),
-            "duration_min": round(total_duration, 1),
+            "duration_min": int(round(total_duration)),
             "hazard_score_avg": round(avg_hazard, 2),
-            "segments_count": len(segments)
+            "segments_count": len(segments),
+            "segments": segments
         }

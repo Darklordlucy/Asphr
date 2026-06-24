@@ -10,6 +10,7 @@ class RouteRequest(BaseModel):
     destination: Coordinate
     route_type: str = Field(default="fastest", description="One of: fastest, safest, straightest, popular")
     vehicle_type: str = Field(default="car", description="One of: bike, car, truck, supercar")
+    avoid_tolls: bool = Field(default=False, description="Whether to avoid toll roads")
 
 class FeedbackRequest(BaseModel):
     user_id: Optional[str] = None

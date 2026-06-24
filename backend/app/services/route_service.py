@@ -63,7 +63,8 @@ class RouteService:
         origin: Dict[str, float],
         destination: Dict[str, float],
         route_type: str,
-        vehicle_type: str
+        vehicle_type: str,
+        avoid_tolls: bool = False
     ) -> Dict[str, Any]:
         # 1. Execute pathfinding optimization
         route_result = self.optimizer.compute_route(
@@ -72,7 +73,8 @@ class RouteService:
             end_lat=destination["lat"],
             end_lon=destination["lon"],
             route_type=route_type,
-            vehicle_type=vehicle_type
+            vehicle_type=vehicle_type,
+            avoid_tolls=avoid_tolls
         )
 
         # 2. Query weather conditions around origin point for warning alerts
@@ -106,6 +108,7 @@ class RouteService:
             "distance_km": route_result["distance_km"],
             "duration_min": route_result["duration_min"],
             "hazard_score_avg": route_result["hazard_score_avg"],
+            "segments": route_result["segments"],
             "weather_alerts": weather_alerts,
             "instructions": instructions
         }
