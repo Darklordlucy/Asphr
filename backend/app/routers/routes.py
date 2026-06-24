@@ -75,13 +75,15 @@ async def get_hazards_heatmap(
                 sh.hazard_score,
                 sh.hazard_type
             FROM road_segments rs
-            LEFT JOIN (
-                SELECT DISTINCT ON (segment_id) segment_id, hazard_score, hazard_type
+            LEFT JOIN LATERAL (
+                SELECT hazard_score, hazard_type
                 FROM segment_hazards
-                ORDER BY segment_id, recorded_at DESC
-            ) sh ON rs.id = sh.segment_id
+                WHERE segment_id = rs.id
+                ORDER BY recorded_at DESC
+                LIMIT 1
+            ) sh ON TRUE
             WHERE ST_Intersects(rs.geometry, ST_GeomFromText(:bbox, 4326))
-            LIMIT 1000
+            LIMIT 5000
         """)
         
         result = await db.execute(query, {"bbox": bbox_wkt})
