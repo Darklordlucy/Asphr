@@ -13,6 +13,13 @@ const Logo = () => (
   </div>
 );
 
+const ButtonLogo = () => (
+  <svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2 text-brand-yellow">
+    <path d="M50 15 L15 85 L85 85 Z" fill="currentColor"/>
+    <path d="M50 35 L30 75 L70 75 Z" fill="#0F2027"/>
+  </svg>
+);
+
 const Navbar = () => {
   return (
     <nav className="flex items-center justify-between px-10 py-6 absolute top-0 w-full z-50">
@@ -26,9 +33,9 @@ const Navbar = () => {
         <a href="#" className="hover:text-brand-yellow transition-colors text-white/90">Asphr IoT</a>
       </div>
 
-      <button className="bg-brand-yellow hover:bg-yellow-400 text-brand-dark px-6 py-2.5 rounded-full font-semibold text-sm flex items-center transition-transform hover:scale-105 active:scale-95 shadow-lg">
-        Get Asphr
-        <ArrowRight className="w-4 h-4 ml-2" />
+      <button className="bg-[#0F2027] hover:bg-black text-white px-6 py-2.5 rounded-full font-sans font-medium text-sm flex items-center transition-all hover:scale-105 active:scale-95 shadow-xl border border-white/10">
+        <ButtonLogo />
+        Start Your Journey
       </button>
     </nav>
   );
