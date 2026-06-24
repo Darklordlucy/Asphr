@@ -1,1 +1,2 @@
 ml-training/models/hazard_model.pkl filter=lfs diff=lfs merge=lfs -text
+backend/data/map_cache/*.graphml filter=lfs diff=lfs merge=lfs -text

@@ -6,3 +6,10 @@ __pycache__/
 .pytest_cache/
 
 # Large model files to be pushed later via Git LFS
+
+# Cache folders
+backend/cache/
+cache/
+
+# Env files
+.env
