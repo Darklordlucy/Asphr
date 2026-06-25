@@ -265,7 +265,12 @@ const Maps = () => {
                     3, 9,
                     7
                   ],
-                  'circle-color': ['get', 'color'],
+                  'circle-color': [
+                    'match',
+                    ['get', 'congestion_level'],
+                    3, '#EF4444',
+                    '#F97316'
+                  ],
                   'circle-stroke-width': 1.5,
                   'circle-stroke-color': '#FFFFFF',
                   'circle-opacity': 0.85,
@@ -277,7 +282,7 @@ const Maps = () => {
                 layout={{
                   'text-field': [
                     'concat',
-                    ['to-string', ['get', 'speed_kmh']],
+                    ['to-string', ['coalesce', ['get', 'speed_kmh'], 0]],
                     ' km/h'
                   ],
                   'text-size': 9,
