@@ -96,3 +96,20 @@ export async function computeRoute({
 export async function checkHealth() {
   return request('/health');
 }
+
+// ─── Custom DB Connectivity (via Vite middleware) ───────────────────────────
+
+export async function fetchPopularPlaces() {
+  const devServerUrl = window.location.origin;
+  const res = await fetch(`${devServerUrl}/api/custom-db/popular_places`);
+  if (!res.ok) throw new Error('Failed to fetch popular places from database');
+  return res.json();
+}
+
+export async function fetchWeatherGrid() {
+  const devServerUrl = window.location.origin;
+  const res = await fetch(`${devServerUrl}/api/custom-db/weather_grid`);
+  if (!res.ok) throw new Error('Failed to fetch weather grid from database');
+  return res.json();
+}
+
