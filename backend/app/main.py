@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings, AsyncSessionLocal
-from app.routers import health, geocode, iot, routes, websocket
+from app.routers import health, geocode, iot, routes, websocket, custom_db
 from app.algorithms.graph_builder import GraphManager
 from app.models.hazard_predictor import HazardPredictor
 from app.models.traffic_forecaster import TrafficForecaster
@@ -96,6 +96,7 @@ app.include_router(geocode.router)
 app.include_router(iot.router)
 app.include_router(routes.router)
 app.include_router(websocket.router)
+app.include_router(custom_db.router)
 
 if __name__ == "__main__":
     import uvicorn

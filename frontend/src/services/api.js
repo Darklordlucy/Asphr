@@ -100,24 +100,15 @@ export async function checkHealth() {
 // ─── Custom DB Connectivity (via Vite middleware) ───────────────────────────
 
 export async function fetchPopularPlaces() {
-  const devServerUrl = window.location.origin;
-  const res = await fetch(`${devServerUrl}/api/custom-db/popular_places`);
-  if (!res.ok) throw new Error('Failed to fetch popular places from database');
-  return res.json();
+  return request('/api/v1/custom-db/popular_places');
 }
 
 export async function fetchWeatherGrid() {
-  const devServerUrl = window.location.origin;
-  const res = await fetch(`${devServerUrl}/api/custom-db/weather_grid`);
-  if (!res.ok) throw new Error('Failed to fetch weather grid from database');
-  return res.json();
+  return request('/api/v1/custom-db/weather_grid');
 }
 
 export async function fetchHeavyTraffic() {
-  const devServerUrl = window.location.origin;
-  const res = await fetch(`${devServerUrl}/api/custom-db/heavy_traffic`);
-  if (!res.ok) throw new Error('Failed to fetch heavy traffic from database');
-  return res.json();
+  return request('/api/v1/custom-db/heavy_traffic');
 }
 
 
