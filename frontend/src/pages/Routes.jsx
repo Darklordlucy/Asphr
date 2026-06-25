@@ -46,6 +46,7 @@ const Routes = () => {
   const [routeError,    setRouteError]    = useState(null);
   const [loading,       setLoading]       = useState(false);
   const [isNavigating,  setIsNavigating]  = useState(false);
+  const [isFlipped,     setIsFlipped]     = useState(false);
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const originRef      = useRef(null);
@@ -116,6 +117,7 @@ const Routes = () => {
   const doComputeRoute = useCallback(async () => {
     if (!canCompute) return;
     setLoading(true);
+    setIsFlipped(false);
     setRouteError(null);   // always clear before new attempt
     setRouteResult(null);
     try {
@@ -247,215 +249,278 @@ const Routes = () => {
 
         {/* ── Route Planner Overlay ────────────────────────────────────────── */}
         {!isNavigating && (
-          <div className="absolute top-28 left-6 z-10 w-96 bg-[#8F9D68] backdrop-blur-xl text-black p-6 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-black/10 flex flex-col max-h-[85vh]">
-
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6 shrink-0">
-              <div className="flex items-center gap-3">
-                <Navigation className="text-black" size={24} />
-                <h2 className="text-xl font-bold tracking-tight">Plan Route</h2>
-              </div>
-              {loading && <Loader2 size={18} className="animate-spin text-black/60" />}
-            </div>
-
-            <div className="overflow-y-auto pr-1 flex-1 space-y-5" style={{ scrollbarWidth: 'none' }}>
-
-              {/* ── Search bars ──────────────────────────────────────────── */}
-              <div className="space-y-3 relative">
-                <div className="absolute left-3.5 top-7 bottom-7 w-0.5 bg-black/10 z-0" />
-
-                {/* Origin */}
-                <div className="relative z-10" ref={originRef}>
-                  <div className={`flex items-center gap-3 bg-[#fef6d2]/30 p-3 rounded-2xl border transition-all
-                    ${showOriginDrop ? 'border-black/30 bg-[#fef6d2]/60' : 'border-black/5'}`}
-                  >
-                    <div className="w-2.5 h-2.5 rounded-full bg-black shrink-0" />
-                    <input
-                      type="text"
-                      value={originText}
-                      onChange={(e) => handleOriginChange(e.target.value)}
-                      onFocus={() => originSuggestions.length && setShowOriginDrop(true)}
-                      className="bg-transparent border-none outline-none text-black w-full text-sm font-medium placeholder:text-black/50 focus:ring-0"
-                      placeholder="Choose starting point..."
-                    />
-                    {originText && (
-                      <button onClick={() => { setOriginText(''); setOriginCoords(null); setRouteResult(null); }}>
-                        <X size={14} className="text-black/40 hover:text-black" />
-                      </button>
-                    )}
+          <div className="absolute top-28 left-6 z-10 w-96 max-h-[85vh] flex flex-col">
+            {!isFlipped ? (
+              /* Front Side: Route Planner Input */
+              <div className="w-full bg-[#8F9D68] backdrop-blur-xl text-black rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-black/10 flex flex-col p-6 transition-all duration-300">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <Navigation className="text-black" size={24} />
+                    <h2 className="text-xl font-bold tracking-tight">Plan Route</h2>
                   </div>
-                  {showOriginDrop && originSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-[#fef6d2] rounded-xl shadow-xl border border-black/10 overflow-hidden z-50">
-                      {originSuggestions.map((s, i) => (
-                        <div
-                          key={i}
-                          className="px-4 py-3 hover:bg-black/5 cursor-pointer text-sm text-black font-medium transition-colors border-b border-black/5 last:border-0"
-                          onMouseDown={() => selectOrigin(s)}
-                        >
-                          <MapPin size={12} className="inline mr-2 text-black/40" />
-                          {s.name}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsFlipped(true)}
+                      className="bg-[#fef6d2] hover:bg-black hover:text-[#fef6d2] text-black font-bold text-xs uppercase px-3 py-1.5 rounded-full border border-black/10 transition-all shadow-md active:scale-95"
+                    >
+                      view
+                    </button>
+                    {loading && <Loader2 size={18} className="animate-spin text-black/60" />}
+                  </div>
+                </div>
+
+                <div className="overflow-y-auto pr-1 flex-1 space-y-5" style={{ scrollbarWidth: 'none' }}>
+
+                  {/* ── Search bars ──────────────────────────────────────────── */}
+                  <div className="space-y-3 relative">
+                    <div className="absolute left-3.5 top-7 bottom-7 w-0.5 bg-black/10 z-0" />
+
+                    {/* Origin */}
+                    <div className="relative z-10" ref={originRef}>
+                      <div className={`flex items-center gap-3 bg-[#fef6d2]/30 p-3 rounded-2xl border transition-all
+                        ${showOriginDrop ? 'border-black/30 bg-[#fef6d2]/60' : 'border-black/5'}`}
+                      >
+                        <div className="w-2.5 h-2.5 rounded-full bg-black shrink-0" />
+                        <input
+                          type="text"
+                          value={originText}
+                          onChange={(e) => handleOriginChange(e.target.value)}
+                          onFocus={() => originSuggestions.length && setShowOriginDrop(true)}
+                          className="bg-transparent border-none outline-none text-black w-full text-sm font-medium placeholder:text-black/50 focus:ring-0"
+                          placeholder="Choose starting point..."
+                        />
+                        {originText && (
+                          <button onClick={() => { setOriginText(''); setOriginCoords(null); setRouteResult(null); }}>
+                            <X size={14} className="text-black/40 hover:text-black" />
+                          </button>
+                        )}
+                      </div>
+                      {showOriginDrop && originSuggestions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-[#fef6d2] rounded-xl shadow-xl border border-black/10 overflow-hidden z-50">
+                          {originSuggestions.map((s, i) => (
+                            <div
+                              key={i}
+                              className="px-4 py-3 hover:bg-black/5 cursor-pointer text-sm text-black font-medium transition-colors border-b border-black/5 last:border-0"
+                              onMouseDown={() => selectOrigin(s)}
+                            >
+                              <MapPin size={12} className="inline mr-2 text-black/40" />
+                              {s.name}
+                            </div>
+                          ))}
                         </div>
+                      )}
+                    </div>
+
+                    {/* Destination */}
+                    <div className="relative z-10" ref={destRef}>
+                      <div className={`flex items-center gap-3 bg-[#fef6d2]/30 p-3 rounded-2xl border transition-all
+                        ${showDestDrop ? 'border-black/30 bg-[#fef6d2]/60' : 'border-black/5'}`}
+                      >
+                        <MapPin className="text-red-600 shrink-0" size={16} />
+                        <input
+                          type="text"
+                          value={destText}
+                          onChange={(e) => handleDestChange(e.target.value)}
+                          onFocus={() => destSuggestions.length && setShowDestDrop(true)}
+                          className="bg-transparent border-none outline-none text-black w-full text-sm font-medium placeholder:text-black/50 focus:ring-0"
+                          placeholder="Choose destination..."
+                        />
+                        {destText && (
+                          <button onClick={() => { setDestText(''); setDestCoords(null); setRouteResult(null); }}>
+                            <X size={14} className="text-black/40 hover:text-black" />
+                          </button>
+                        )}
+                      </div>
+                      {showDestDrop && destSuggestions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-[#fef6d2] rounded-xl shadow-xl border border-black/10 overflow-hidden z-50">
+                          {destSuggestions.map((s, i) => (
+                            <div
+                              key={i}
+                              className="px-4 py-3 hover:bg-black/5 cursor-pointer text-sm text-black font-medium transition-colors border-b border-black/5 last:border-0"
+                              onMouseDown={() => selectDest(s)}
+                            >
+                              <MapPin size={12} className="inline mr-2 text-black/40" />
+                              {s.name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Vehicle Selector ─────────────────────────────────────── */}
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-black/50 mb-3">Vehicle</h3>
+                    <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                      {[
+                        { id: 'bike',     icon: <Bike size={16} />,   label: 'Bike'     },
+                        { id: 'car',      icon: <Car size={16} />,    label: 'Car'      },
+                        { id: 'truck',    icon: <Truck size={16} />,  label: 'Truck'    },
+                        { id: 'supercar', icon: <Rocket size={16} />, label: 'Supercar' },
+                      ].map((v) => (
+                        <button
+                          key={v.id}
+                          onClick={() => setVehicle(v.id)}
+                          className={`flex flex-col items-center justify-center min-w-[72px] p-3 rounded-2xl transition-all duration-300 ${
+                            vehicle === v.id
+                              ? 'bg-black text-[#fef6d2] shadow-md scale-105'
+                              : 'bg-[#fef6d2]/30 text-black/70 hover:bg-[#fef6d2]/50'
+                          }`}
+                        >
+                          <div className="mb-1">{v.icon}</div>
+                          <span className="text-[10px] font-bold">{v.label}</span>
+                        </button>
                       ))}
                     </div>
-                  )}
-                </div>
-
-                {/* Destination */}
-                <div className="relative z-10" ref={destRef}>
-                  <div className={`flex items-center gap-3 bg-[#fef6d2]/30 p-3 rounded-2xl border transition-all
-                    ${showDestDrop ? 'border-black/30 bg-[#fef6d2]/60' : 'border-black/5'}`}
-                  >
-                    <MapPin className="text-red-600 shrink-0" size={16} />
-                    <input
-                      type="text"
-                      value={destText}
-                      onChange={(e) => handleDestChange(e.target.value)}
-                      onFocus={() => destSuggestions.length && setShowDestDrop(true)}
-                      className="bg-transparent border-none outline-none text-black w-full text-sm font-medium placeholder:text-black/50 focus:ring-0"
-                      placeholder="Choose destination..."
-                    />
-                    {destText && (
-                      <button onClick={() => { setDestText(''); setDestCoords(null); setRouteResult(null); }}>
-                        <X size={14} className="text-black/40 hover:text-black" />
-                      </button>
-                    )}
                   </div>
-                  {showDestDrop && destSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-[#fef6d2] rounded-xl shadow-xl border border-black/10 overflow-hidden z-50">
-                      {destSuggestions.map((s, i) => (
-                        <div
-                          key={i}
-                          className="px-4 py-3 hover:bg-black/5 cursor-pointer text-sm text-black font-medium transition-colors border-b border-black/5 last:border-0"
-                          onMouseDown={() => selectDest(s)}
+
+                  {/* ── Route Type Selector ──────────────────────────────────── */}
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-black/50 mb-3">Route Type</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: 'fastest',     icon: <Zap size={16} />,        label: 'Fastest'     },
+                        { id: 'safest',      icon: <Shield size={16} />,     label: 'Safest'      },
+                        { id: 'straightest', icon: <ArrowRight size={16} />, label: 'Straightest' },
+                        { id: 'popular',     icon: <Star size={16} />,       label: 'Popular'     },
+                      ].map((rt) => (
+                        <button
+                          key={rt.id}
+                          onClick={() => setRouteType(rt.id)}
+                          className={`flex items-center gap-2 p-3 rounded-2xl transition-all duration-300 ${
+                            routeType === rt.id
+                              ? 'bg-brand-yellow text-black font-bold shadow-md border border-black/10'
+                              : 'bg-[#fef6d2]/30 text-black/80 hover:bg-[#fef6d2]/50 font-medium border border-transparent'
+                          }`}
                         >
-                          <MapPin size={12} className="inline mr-2 text-black/40" />
-                          {s.name}
-                        </div>
+                          <div className={routeType === rt.id ? 'text-black' : 'text-black/60'}>{rt.icon}</div>
+                          <span className="text-xs">{rt.label}</span>
+                        </button>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ── Vehicle Selector ─────────────────────────────────────── */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-black/50 mb-3">Vehicle</h3>
-                <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-                  {[
-                    { id: 'bike',     icon: <Bike size={16} />,   label: 'Bike'     },
-                    { id: 'car',      icon: <Car size={16} />,    label: 'Car'      },
-                    { id: 'truck',    icon: <Truck size={16} />,  label: 'Truck'    },
-                    { id: 'supercar', icon: <Rocket size={16} />, label: 'Supercar' },
-                  ].map((v) => (
-                    <button
-                      key={v.id}
-                      onClick={() => setVehicle(v.id)}
-                      className={`flex flex-col items-center justify-center min-w-[72px] p-3 rounded-2xl transition-all duration-300 ${
-                        vehicle === v.id
-                          ? 'bg-black text-[#fef6d2] shadow-md scale-105'
-                          : 'bg-[#fef6d2]/30 text-black/70 hover:bg-[#fef6d2]/50'
-                      }`}
-                    >
-                      <div className="mb-1">{v.icon}</div>
-                      <span className="text-[10px] font-bold">{v.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Route Type Selector ──────────────────────────────────── */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-black/50 mb-3">Route Type</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'fastest',     icon: <Zap size={16} />,        label: 'Fastest'     },
-                    { id: 'safest',      icon: <Shield size={16} />,     label: 'Safest'      },
-                    { id: 'straightest', icon: <ArrowRight size={16} />, label: 'Straightest' },
-                    { id: 'popular',     icon: <Star size={16} />,       label: 'Popular'     },
-                  ].map((rt) => (
-                    <button
-                      key={rt.id}
-                      onClick={() => setRouteType(rt.id)}
-                      className={`flex items-center gap-2 p-3 rounded-2xl transition-all duration-300 ${
-                        routeType === rt.id
-                          ? 'bg-brand-yellow text-black font-bold shadow-md border border-black/10'
-                          : 'bg-[#fef6d2]/30 text-black/80 hover:bg-[#fef6d2]/50 font-medium border border-transparent'
-                      }`}
-                    >
-                      <div className={routeType === rt.id ? 'text-black' : 'text-black/60'}>{rt.icon}</div>
-                      <span className="text-xs">{rt.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Route error ──────────────────────────────────────────── */}
-              {routeError && (
-                <div className="flex items-start gap-2 bg-red-100 text-red-800 text-xs font-semibold p-3 rounded-2xl">
-                  <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                  {routeError}
-                </div>
-              )}
-
-              {/* ── Route Summary ─────────────────────────────────────────── */}
-              {routeResult && (
-                <div className="bg-[#fef6d2]/50 p-4 rounded-2xl border border-black/5 space-y-3">
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    <div>
-                      <p className="text-2xl font-black text-black leading-none">
-                        {formatDuration(routeResult.duration_min)}
-                      </p>
-                      <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mt-1">Duration</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black text-black leading-none">
-                        {formatDistance(routeResult.distance_km)}
-                      </p>
-                      <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mt-1">Distance</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black text-green-700 leading-none">{safetyPercent}%</p>
-                      <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mt-1">Safety</p>
-                    </div>
                   </div>
 
-                  {/* Weather alerts */}
-                  {routeResult.weather_alerts?.length > 0 && (
-                    <div className="text-xs text-black/70 font-medium bg-black/5 rounded-xl px-3 py-2">
-                      {routeResult.weather_alerts[0]}
+                  {/* ── Route error ──────────────────────────────────────────── */}
+                  {routeError && (
+                    <div className="flex items-start gap-2 bg-red-100 text-red-800 text-xs font-semibold p-3 rounded-2xl">
+                      <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                      {routeError}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* ── Compute button ───────────────────────────────────────── */}
-              {!routeResult && canCompute && !loading && (
+                  {/* ── Route Summary ─────────────────────────────────────────── */}
+                  {routeResult && (
+                    <div className="bg-[#fef6d2]/50 p-4 rounded-2xl border border-black/5 space-y-3">
+                      <div className="grid grid-cols-3 gap-3 text-center">
+                        <div>
+                          <p className="text-2xl font-black text-black leading-none">
+                            {formatDuration(routeResult.duration_min)}
+                          </p>
+                          <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mt-1">Duration</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-black text-black leading-none">
+                            {formatDistance(routeResult.distance_km)}
+                          </p>
+                          <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mt-1">Distance</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-black text-green-700 leading-none">{safetyPercent}%</p>
+                          <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mt-1">Safety</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Compute button ───────────────────────────────────────── */}
+                  {!routeResult && canCompute && !loading && (
+                    <button
+                      onClick={doComputeRoute}
+                      className="w-full py-3 rounded-2xl bg-black text-[#fef6d2] font-bold text-sm flex items-center justify-center gap-2 hover:bg-black/80 transition-colors"
+                    >
+                      <Zap size={16} className="fill-brand-yellow text-brand-yellow" />
+                      Calculate Route
+                    </button>
+                  )}
+                </div>
+
+                {/* ── Start Navigation Button ───────────────────────────────── */}
                 <button
-                  onClick={doComputeRoute}
-                  className="w-full py-3 rounded-2xl bg-black text-[#fef6d2] font-bold text-sm flex items-center justify-center gap-2 hover:bg-black/80 transition-colors"
+                  onClick={() => { if (routeResult) setIsNavigating(true); }}
+                  disabled={!routeResult || loading}
+                  className={`w-full mt-4 py-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 font-bold shrink-0
+                    ${routeResult && !loading
+                      ? 'bg-black hover:bg-black/80 text-[#fef6d2] shadow-xl hover:shadow-2xl hover:-translate-y-0.5'
+                      : 'bg-black/10 text-black/30 cursor-not-allowed'
+                    }
+                  `}
                 >
-                  <Zap size={16} className="fill-brand-yellow text-brand-yellow" />
-                  Calculate Route
+                  {loading
+                    ? <><Loader2 size={18} className="animate-spin" /> Calculating...</>
+                    : <><Play size={18} className={routeResult ? 'fill-[#fef6d2]' : ''} /> Start Navigation</>
+                  }
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              /* Back Side: Search Diagnostics */
+              <div className="w-full bg-[#8F9D68] backdrop-blur-xl text-black rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-black/10 flex flex-col p-6 transition-all duration-300">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <Activity className="text-black" size={24} />
+                    <h2 className="text-xl font-bold tracking-tight text-black">Diagnostics</h2>
+                  </div>
+                  <button
+                    onClick={() => setIsFlipped(false)}
+                    className="bg-[#fef6d2] hover:bg-black hover:text-[#fef6d2] text-black font-bold text-xs uppercase px-3 py-1.5 rounded-full border border-black/10 transition-all shadow-md active:scale-95"
+                  >
+                    view
+                  </button>
+                </div>
 
-            {/* ── Start Navigation Button ───────────────────────────────── */}
-            <button
-              onClick={() => { if (routeResult) setIsNavigating(true); }}
-              disabled={!routeResult || loading}
-              className={`w-full mt-4 py-4 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 font-bold shrink-0
-                ${routeResult && !loading
-                  ? 'bg-black hover:bg-black/80 text-[#fef6d2] shadow-xl hover:shadow-2xl hover:-translate-y-0.5'
-                  : 'bg-black/10 text-black/30 cursor-not-allowed'
-                }
-              `}
-            >
-              {loading
-                ? <><Loader2 size={18} className="animate-spin" /> Calculating...</>
-                : <><Play size={18} className={routeResult ? 'fill-[#fef6d2]' : ''} /> Start Navigation</>
-              }
-            </button>
+                {/* Statistics Body */}
+                <div className="overflow-y-auto pr-1 flex-1 space-y-5" style={{ scrollbarWidth: 'none' }}>
+                  {routeResult ? (
+                    <div className="bg-[#fef6d2]/50 p-5 rounded-2xl border border-black/5 space-y-4">
+                      <div className="flex justify-between items-center py-2.5 border-b border-black/5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-black/60">Algorithm</span>
+                        <span className="text-sm font-black text-black">{routeResult.search_stats?.algorithm || 'Dijkstra'}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center py-2.5 border-b border-black/5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-black/60">Search Time</span>
+                        <span className="text-sm font-black text-black">{routeResult.search_stats?.search_time_ms || '0.0'} ms</span>
+                      </div>
+
+                      <div className="flex justify-between items-center py-2.5 border-b border-black/5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-black/60">Nodes in Search Box</span>
+                        <span className="text-sm font-black text-black">{routeResult.search_stats?.total_nodes_in_search_area || '0'}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center py-2.5 border-b border-black/5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-black/60">Nodes Selected</span>
+                        <span className="text-sm font-black text-black">{routeResult.search_stats?.nodes_selected || '0'}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center py-2.5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-black/60">Total Map Nodes</span>
+                        <span className="text-sm font-black text-black">{(routeResult.search_stats?.graph_total_nodes || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-[#fef6d2]/50 p-6 rounded-2xl border border-black/5 text-center text-black/60 font-semibold text-sm">
+                      Please enter coordinates and calculate a route to view diagnostics.
+                    </div>
+                  )}
+
+                  <div className="bg-[#fef6d2]/35 p-4 rounded-2xl border border-black/5 space-y-3 text-xs text-black/70 font-medium">
+                    <p>💡 <strong>Search Area:</strong> Counts nodes within the bounding box between origin and destination (including a 1.5km buffer corridor).</p>
+                    <p>🧭 <strong>Vehicle Profile:</strong> Filters road classes based on your selected vehicle restrictions before calculation.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -498,12 +563,6 @@ const Routes = () => {
                 <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest">Safety</p>
               </div>
             </div>
-
-            {routeResult.weather_alerts?.[0] && (
-              <p className="text-xs font-medium text-black/70 bg-black/5 rounded-xl px-3 py-2">
-                {routeResult.weather_alerts[0]}
-              </p>
-            )}
 
             <button
               onClick={() => setIsNavigating(false)}

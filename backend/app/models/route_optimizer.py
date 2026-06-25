@@ -80,9 +80,13 @@ class RouteOptimizer:
             print(f"Warning: End node {end_node} not in filtered graph. Falling back to full graph.")
 
         # 3. Pathfinding and Weight Selection
+        import time
+        start_time = time.perf_counter()
+        
         path = []
         weight_attribute = ""
         active_graph = filtered_G
+        algo_used = "Dijkstra"
         
         try:
             if route_type == "fastest":
@@ -98,6 +102,7 @@ class RouteOptimizer:
                 path = nx.shortest_path(active_graph, source=start_node, target=end_node, weight=weight_attribute)
             
             elif route_type == "straightest":
+                algo_used = "A* Search"
                 # Implement A* with dynamic angular turn cost and great-circle heuristic
                 target_lat = G.nodes[end_node]['y']
                 target_lon = G.nodes[end_node]['x']
@@ -138,6 +143,7 @@ class RouteOptimizer:
             # Fall back to standard Dijkstra on full graph if no path is found
             print(f"No path found on filtered graph for {vehicle_type}. Falling back to full graph.")
             active_graph = G
+            algo_used = "Dijkstra (Fallback)"
             try:
                 weight_attribute = "length"
                 path = nx.shortest_path(active_graph, source=start_node, target=end_node, weight="length")
@@ -219,6 +225,23 @@ class RouteOptimizer:
         for seg in segments:
             seg.pop("hazard_score", None)
 
+        end_time = time.perf_counter()
+        search_time_ms = round((end_time - start_time) * 1000.0, 2)
+
+        # Count nodes in the bounding box between start and end coordinates
+        min_x = min(G.nodes[start_node]['x'], G.nodes[end_node]['x'])
+        max_x = max(G.nodes[start_node]['x'], G.nodes[end_node]['x'])
+        min_y = min(G.nodes[start_node]['y'], G.nodes[end_node]['y'])
+        max_y = max(G.nodes[start_node]['y'], G.nodes[end_node]['y'])
+
+        # Add 0.015 degrees padding (~1.5km buffer) to represent the local search corridor
+        pad_x = 0.015
+        pad_y = 0.015
+        bbox_nodes_count = sum(
+            1 for n, data in G.nodes(data=True)
+            if (min_x - pad_x) <= data['x'] <= (max_x + pad_x) and (min_y - pad_y) <= data['y'] <= (max_y + pad_y)
+        )
+
         return {
             "origin_node": start_node,
             "destination_node": end_node,
@@ -227,5 +250,12 @@ class RouteOptimizer:
             "duration_min": int(round(total_duration)),
             "hazard_score_avg": round(avg_hazard, 2),
             "segments_count": len(segments),
-            "segments": segments
+            "segments": segments,
+            "search_stats": {
+                "total_nodes_in_search_area": bbox_nodes_count,
+                "nodes_selected": len(path),
+                "search_time_ms": search_time_ms,
+                "algorithm": algo_used,
+                "graph_total_nodes": len(G.nodes)
+            }
         }

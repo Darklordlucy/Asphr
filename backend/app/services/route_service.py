@@ -110,5 +110,6 @@ class RouteService:
             "hazard_score_avg": route_result["hazard_score_avg"],
             "segments": route_result["segments"],
             "weather_alerts": weather_alerts,
-            "instructions": instructions
+            "instructions": instructions,
+            "search_stats": route_result.get("search_stats")
         }
