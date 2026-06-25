@@ -64,6 +64,47 @@ def main():
                     }
                 })
             print(json.dumps({"type": "FeatureCollection", "features": features}))
+
+        elif table == "heavy_traffic":
+            cur.execute("""
+                SELECT 
+                    rs.id,
+                    tc.congestion_level,
+                    tc.speed_kmh,
+                    ST_AsGeoJSON(ST_Centroid(rs.geometry))
+                FROM road_segments rs
+                JOIN LATERAL (
+                    SELECT congestion_level, speed_kmh
+                    FROM traffic_conditions
+                    WHERE segment_id = rs.id
+                    ORDER BY recorded_at DESC
+                    LIMIT 1
+                ) tc ON TRUE
+                WHERE tc.congestion_level >= 2;
+            """)
+            
+            rows = cur.fetchall()
+            features = []
+            for rid, level, speed, geom_json in rows:
+                # Color code by congestion level:
+                # 2 -> Red (Heavy), 3 -> Severe (Dark Red)
+                if level == 3:
+                    color = "#EF4444" # heavy red
+                else:
+                    color = "#F97316" # heavy orange/red
+                
+                features.append({
+                    "type": "Feature",
+                    "geometry": json.loads(geom_json),
+                    "properties": {
+                        "segment_id": rid,
+                        "congestion_level": level,
+                        "speed_kmh": speed,
+                        "color": color
+                    }
+                })
+            print(json.dumps({"type": "FeatureCollection", "features": features}))
+
         else:
             print(json.dumps({"error": "Unknown table requested"}))
             sys.exit(1)

@@ -16,11 +16,15 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
           if (req.url.includes('/api/custom-db/')) {
-            const parts = req.url.split('/');
-            const tableName = parts[parts.length - 1].split('?')[0]; // e.g. popular_places or weather_grid
-            if (tableName === 'popular_places' || tableName === 'weather_grid') {
+            const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+            const parts = urlObj.pathname.split('/');
+            const tableName = parts[parts.length - 1]; // e.g. popular_places, weather_grid, or heavy_traffic
+            
+            if (tableName === 'popular_places' || tableName === 'weather_grid' || tableName === 'heavy_traffic') {
               const scriptPath = path.join(__dirname, 'query_db.py');
-              exec(`python "${scriptPath}" ${tableName}`, (error, stdout, stderr) => {
+              const command = `python "${scriptPath}" ${tableName}`;
+              
+              exec(command, (error, stdout, stderr) => {
                 if (error) {
                   res.statusCode = 500;
                   res.setHeader('Content-Type', 'application/json');

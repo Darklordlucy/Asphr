@@ -113,3 +113,11 @@ export async function fetchWeatherGrid() {
   return res.json();
 }
 
+export async function fetchHeavyTraffic() {
+  const devServerUrl = window.location.origin;
+  const res = await fetch(`${devServerUrl}/api/custom-db/heavy_traffic`);
+  if (!res.ok) throw new Error('Failed to fetch heavy traffic from database');
+  return res.json();
+}
+
+

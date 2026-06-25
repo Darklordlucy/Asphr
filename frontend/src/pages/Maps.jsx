@@ -2,14 +2,12 @@ import React, { useState, useCallback, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Map, { NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
 import { Layers, AlertTriangle, Car, Siren, Loader2, Star, GitFork, Cloud } from 'lucide-react';
-import { fetchHazards, fetchPopularPlaces, fetchWeatherGrid } from '../services/api';
+import { fetchHazards, fetchPopularPlaces, fetchWeatherGrid, fetchHeavyTraffic } from '../services/api';
 
 // ── Hazard type → frontend layer id mapping ─────────────────────────────────
-// The backend hazard_type field may contain these values.
 // We group them under the UI layer ids so each toggle shows relevant data.
 const HAZARD_TYPE_MAP = {
   potholes:      ['pothole', 'potholes', 'road_damage'],
-  heavy_traffic: ['heavy_traffic', 'congestion', 'traffic'],
   hazards:       ['hazard', 'hazards', 'accident', 'general', 'debris', 'accident_prone', 'wet_road'],
 };
 
@@ -35,6 +33,7 @@ const Maps = () => {
   const [hazardData, setHazardData]       = useState([]);   // raw backend segments
   const [popularPlaces, setPopularPlaces] = useState(null); // GeoJSON FeatureCollection
   const [weatherGrid, setWeatherGrid]     = useState(null); // GeoJSON FeatureCollection
+  const [heavyTraffic, setHeavyTraffic]   = useState(null); // GeoJSON FeatureCollection
   const [loading, setLoading]             = useState(false);
   const [error, setError]                 = useState(null);
   const [fetchedOnce, setFetchedOnce]     = useState(false);
@@ -44,7 +43,7 @@ const Maps = () => {
   const loadHazards = useCallback(async (map) => {
     const bounds = map.getBounds();
     if (!bounds) return;
-    const isSegmentLayer = activeLayer !== 'popular_places' && activeLayer !== 'weather_grid';
+    const isSegmentLayer = activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic';
     if (isSegmentLayer) {
       setLoading(true);
     }
@@ -69,19 +68,39 @@ const Maps = () => {
     }
   }, [activeLayer]);
 
+  // ── Fetch live heavy traffic points covering full MMR city area ───────────
+  const loadHeavyTraffic = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchHeavyTraffic();
+      setHeavyTraffic(data);
+    } catch (err) {
+      setError('Could not load heavy traffic data from database.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const handleMapLoad = useCallback((e) => {
     const map = e.target;
     mapRef.current = map;
     // Tint water/background
     if (map.getLayer('background')) map.setPaintProperty('background', 'background-color', '#fef6d2');
     if (map.getLayer('water'))      map.setPaintProperty('water', 'fill-color', '#fef6d2');
-    // Initial fetch
-    loadHazards(map);
-  }, [loadHazards]);
+    // Initial fetch for segment/hazard layers
+    const isSegmentLayer = activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic';
+    if (isSegmentLayer) {
+      loadHazards(map);
+    }
+  }, [loadHazards, activeLayer]);
 
   const handleMoveEnd = useCallback((e) => {
-    loadHazards(e.target);
-  }, [loadHazards]);
+    const isSegmentLayer = activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic';
+    if (isSegmentLayer) {
+      loadHazards(e.target);
+    }
+  }, [loadHazards, activeLayer]);
 
   // ── Handle custom layers fetching ─────────────────────────────────────────
   const handleLayerChange = useCallback(async (layerId) => {
@@ -108,8 +127,10 @@ const Maps = () => {
       } finally {
         setLoading(false);
       }
+    } else if (layerId === 'heavy_traffic' && !heavyTraffic) {
+      loadHeavyTraffic();
     }
-  }, [popularPlaces, weatherGrid]);
+  }, [popularPlaces, weatherGrid, heavyTraffic, loadHeavyTraffic]);
 
   // ── Filter segments for the active UI layer ────────────────────────────────
   const filteredSegments = hazardData.filter((seg) => {
@@ -231,8 +252,49 @@ const Maps = () => {
             </Source>
           )}
 
+          {/* Heavy Traffic points layer */}
+          {activeLayer === 'heavy_traffic' && heavyTraffic && (
+            <Source id="heavy-traffic" type="geojson" data={heavyTraffic}>
+              <Layer
+                id="heavy-traffic-points"
+                type="circle"
+                paint={{
+                  'circle-radius': [
+                    'match',
+                    ['get', 'congestion_level'],
+                    3, 9,
+                    7
+                  ],
+                  'circle-color': ['get', 'color'],
+                  'circle-stroke-width': 1.5,
+                  'circle-stroke-color': '#FFFFFF',
+                  'circle-opacity': 0.85,
+                }}
+              />
+              <Layer
+                id="heavy-traffic-labels"
+                type="symbol"
+                layout={{
+                  'text-field': [
+                    'concat',
+                    ['to-string', ['get', 'speed_kmh']],
+                    ' km/h'
+                  ],
+                  'text-size': 9,
+                  'text-offset': [0, 1.2],
+                  'text-anchor': 'top',
+                }}
+                paint={{
+                  'text-color': '#991B1B',
+                  'text-halo-color': '#FFFFFF',
+                  'text-halo-width': 1,
+                }}
+              />
+            </Source>
+          )}
+
           {/* Hazard/Road segments layer */}
-          {activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && fetchedOnce && (
+          {activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic' && fetchedOnce && (
             <Source id="hazards" type="geojson" data={geojson}>
               <Layer
                 id="hazard-lines"
@@ -282,7 +344,7 @@ const Maps = () => {
           <div className="mt-8 pt-6 border-t border-black/10 space-y-3">
             {error ? (
               <p className="text-xs text-red-700 font-semibold bg-red-100 rounded-xl px-3 py-2">{error}</p>
-            ) : fetchedOnce || activeLayer === 'popular_places' || activeLayer === 'weather_grid' ? (
+            ) : fetchedOnce || activeLayer === 'popular_places' || activeLayer === 'weather_grid' || (activeLayer === 'heavy_traffic' && heavyTraffic) ? (
               <>
                 {activeLayer === 'popular_places' && popularPlaces && (
                   <>
@@ -318,6 +380,26 @@ const Maps = () => {
                   </>
                 )}
 
+                {activeLayer === 'heavy_traffic' && heavyTraffic && (
+                  <>
+                    <div className="flex justify-between text-[11px] font-bold text-black/60 uppercase tracking-widest">
+                      <span>Traffic zones loaded</span>
+                      <span>{heavyTraffic.features?.length || 0}</span>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {[
+                        { label: 'Heavy Traffic', color: '#F97316' },
+                        { label: 'Severe Traffic', color: '#EF4444' },
+                      ].map(({ label, color }) => (
+                        <div key={label} className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                          <span className="text-[10px] font-bold text-black/60">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
                 {activeLayer === 'road_segments' && (
                   <>
                     <div className="flex justify-between text-[11px] font-bold text-black/60 uppercase tracking-widest">
@@ -330,7 +412,7 @@ const Maps = () => {
                   </>
                 )}
 
-                {activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'road_segments' && (
+                {activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic' && activeLayer !== 'road_segments' && (
                   <>
                     <div className="flex justify-between text-[11px] font-bold text-black/60 uppercase tracking-widest">
                       <span>Segments loaded</span>
