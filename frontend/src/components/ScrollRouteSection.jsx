@@ -195,9 +195,6 @@ const ScrollRouteSection = () => {
         {/* Right Side: Step Content Cards */}
         <div className="flex-1 w-full max-w-3xl flex flex-col justify-center bg-[#8F9D68] text-black p-10 md:p-12 rounded-3xl shadow-xl border border-black/5 relative min-h-[580px] sm:min-h-[520px]">
           <div className="mb-3">
-            <span className="inline-block text-black/50 font-heading font-bold uppercase tracking-[0.2em] text-xs md:text-sm">
-              Interactive Walkthrough
-            </span>
           </div>
 
           <h2 className="text-4xl md:text-5xl font-black text-black tracking-tight mb-8">

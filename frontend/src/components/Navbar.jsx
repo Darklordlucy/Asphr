@@ -32,7 +32,6 @@ const Navbar = ({ theme = 'dark' }) => {
         <Link to="/maps" className={linkClass}>Maps</Link>
         <Link to="/routes" className={linkClass}>Routes</Link>
         <Link to="/services" className={linkClass}>Services</Link>
-        <Link to="/dashboard" className={linkClass}>Dashboard</Link>
       </div>
 
       <Link to="/routes" className="bg-[#0F2027] hover:bg-black text-white px-6 py-2.5 rounded-full font-sans font-medium text-sm flex items-center transition-all hover:scale-105 active:scale-95 shadow-xl border border-white/10">
