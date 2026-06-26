@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import HeroContent from '../components/HeroContent';
 import ChaptersSection from '../components/ChaptersSection';
 import CrisisStatsSection from '../components/CrisisStatsSection';
+import IntroAsphr from '../components/IntroAsphr';
 
 const Home = () => {
   return (
@@ -19,6 +20,9 @@ const Home = () => {
 
       {/* Crisis Stats Section */}
       <CrisisStatsSection />
+
+      {/* Intro Asphr Section */}
+      <IntroAsphr />
     </div>
   );
 };
