@@ -105,17 +105,24 @@ const ScrollRouteSection = () => {
         
         {/* Left Side: SVG Route Tracking */}
         <div className="flex-1 w-full flex items-center justify-center relative select-none">
-          <div className="relative w-[280px] sm:w-[300px] aspect-[3/7]">
+          <div className="relative w-[340px] sm:w-[400px] aspect-[3/5] rounded-3xl overflow-hidden shadow-inner border border-brand-dark/5">
+            {/* Background Map Image */}
+            <img 
+              src="/map_skeleton.png" 
+              alt="Road Network Map" 
+              className="absolute inset-0 w-full h-full object-cover opacity-65 mix-blend-multiply pointer-events-none"
+            />
             
             {/* SVG Path */}
             <svg 
-              viewBox="0 0 300 700" 
-              className="w-full h-full overflow-visible"
+              viewBox="0 0 300 500" 
+              className="w-full h-full overflow-visible relative z-10"
             >
+
               {/* Outer Road Base */}
               <path 
                 ref={pathRef}
-                d="M 150 50 C 280 180, 20 280, 150 380 C 280 480, 20 580, 150 650"
+                d="M 130 20 L 130 65 Q 130 130, 240 130 L 240 165 Q 240 200, 170 200 L 170 245 Q 170 280, 60 280 L 60 315 Q 60 340, 150 340 L 210 340 Q 210 400, 170 400 L 170 450"
                 fill="none" 
                 stroke="#E9E2C8" 
                 strokeWidth="24" 
@@ -123,7 +130,7 @@ const ScrollRouteSection = () => {
               />
               {/* Road Center Dashes */}
               <path 
-                d="M 150 50 C 280 180, 20 280, 150 380 C 280 480, 20 580, 150 650"
+                d="M 130 20 L 130 65 Q 130 130, 240 130 L 240 165 Q 240 200, 170 200 L 170 245 Q 170 280, 60 280 L 60 315 Q 60 340, 150 340 L 210 340 Q 210 400, 170 400 L 170 450"
                 fill="none" 
                 stroke="#FFF" 
                 strokeWidth="2" 
@@ -132,7 +139,7 @@ const ScrollRouteSection = () => {
               />
               {/* Active Route Overlay */}
               <path 
-                d="M 150 50 C 280 180, 20 280, 150 380 C 280 480, 20 580, 150 650"
+                d="M 130 20 L 130 65 Q 130 130, 240 130 L 240 165 Q 240 200, 170 200 L 170 245 Q 170 280, 60 280 L 60 315 Q 60 340, 150 340 L 210 340 Q 210 400, 170 400 L 170 450"
                 fill="none" 
                 stroke="#3b82f6" 
                 strokeWidth="8" 
@@ -172,10 +179,10 @@ const ScrollRouteSection = () => {
             {/* Glowing Vehicle Marker */}
             {pathRef.current && (
               <div 
-                className="absolute w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.6)] border-4 border-white pointer-events-none transition-all duration-75"
+                className="absolute z-20 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.6)] border-4 border-white pointer-events-none"
                 style={{
                   left: `${(markerPos.x / 300) * 100}%`,
-                  top: `${(markerPos.y / 700) * 100}%`,
+                  top: `${(markerPos.y / 500) * 100}%`,
                   transform: 'translate(-50%, -50%)',
                 }}
               >
