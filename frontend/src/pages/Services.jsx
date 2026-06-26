@@ -28,15 +28,61 @@ const CodeBlock = ({ code, language }) => {
 };
 
 const Services = () => {
-  const [apiKey, setApiKey] = useState('');
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [projectNameInput, setProjectNameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [projects, setProjects] = useState(() => {
+    try {
+      const saved = localStorage.getItem('asphr_developer_projects');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [generatedKey, setGeneratedKey] = useState('');
   const [copied, setCopied] = useState(false);
   const [activeSection, setActiveSection] = useState('api');
   const docsRef = useRef(null);
 
-  const handleGenerateKey = () => {
+  const handleOpenSetupModal = () => {
+    setProjectNameInput('');
+    setPasswordInput('');
+    setModalError('');
+    setGeneratedKey('');
+    setShowSetupModal(true);
+  };
+
+  const handleGenerateKey = (e) => {
+    if (e) e.preventDefault();
+    const name = projectNameInput.trim();
+    const password = passwordInput.trim();
+
+    if (!name || !password) {
+      setModalError('Please enter both Project Name and Password.');
+      return;
+    }
+
+    if (projects[name]) {
+      setModalError('Warning: The API already exists for this project');
+      return;
+    }
+
     const randomHex = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    setApiKey(`asphr_live_pk_${randomHex}`);
+    const key = `asphr_live_pk_${randomHex}`;
+
+    const updatedProjects = { ...projects, [name]: { key, password } };
+    setProjects(updatedProjects);
+    try {
+      localStorage.setItem('asphr_developer_projects', JSON.stringify(updatedProjects));
+    } catch (err) {
+      console.error('Failed to save to localStorage:', err);
+    }
+
+    setGeneratedKey(key);
     setCopied(false);
+    setModalError('');
   };
 
   const handleCardClick = (sectionId) => {
@@ -76,7 +122,7 @@ const Services = () => {
       
       <div className="pt-32 px-6 md:px-10 lg:px-16 pb-20 w-full">
         <div className="mb-16">
-          <h2 className="text-brand-yellow font-heading font-bold uppercase tracking-[0.2em] text-sm md:text-base mb-4">
+          <h2 className="text-brand-dark/60 font-heading font-bold uppercase tracking-[0.2em] text-sm md:text-base mb-4">
             Developer Platform
           </h2>
           <h1 className="text-5xl md:text-7xl font-black font-sans text-brand-dark mb-6 tracking-tighter leading-none max-w-5xl">
@@ -87,7 +133,7 @@ const Services = () => {
               Integrate ASPHR's robust road intelligence and routing algorithms directly into your own applications, fleet management tools, and AI systems.
             </p>
             <button 
-              onClick={handleGenerateKey}
+              onClick={handleOpenSetupModal}
               className="bg-[#0F2027] hover:bg-black text-brand-yellow px-5 py-2.5 rounded-full font-bold text-sm transition-all hover:scale-105 active:scale-95 shadow-md whitespace-nowrap self-start md:self-center shrink-0"
             >
               Generate API
@@ -359,7 +405,7 @@ asyncio.run(main())`}
           </div>
           
           <button 
-            onClick={handleGenerateKey}
+            onClick={handleOpenSetupModal}
             className="relative z-10 bg-black hover:bg-black/80 text-brand-yellow px-8 py-4 rounded-xl font-bold text-lg whitespace-nowrap transition-transform hover:scale-105 active:scale-95 shadow-xl"
           >
             Generate API Key
@@ -367,40 +413,98 @@ asyncio.run(main())`}
         </div>
       </div>
 
-      {/* API Key Modal */}
-      {apiKey && (
+      {/* API Generation Modal */}
+      {showSetupModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#8F9D68] border border-black/20 rounded-3xl p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in duration-200">
+          <div className="bg-[#8F9D68] border border-black/20 rounded-3xl p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in duration-200 text-black">
             <button 
-              onClick={() => setApiKey('')}
+              onClick={() => setShowSetupModal(false)}
               className="absolute top-4 right-4 text-black/60 hover:text-black transition-colors"
             >
               <X size={24} />
             </button>
-            <h3 className="text-2xl font-bold text-black mb-4">Your ASPHR API Key</h3>
-            <p className="text-black/80 mb-6 text-sm font-medium">
-              Keep this key secure. It provides programmatic access to ASPHR's routing and hazard datasets.
-            </p>
-            <div className="flex items-center gap-2 bg-black/15 p-3 rounded-xl mb-6 select-all font-mono text-xs text-black border border-black/10 break-all">
-              <span className="flex-1 select-all">{apiKey}</span>
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(apiKey);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="p-2 hover:bg-black/10 rounded-lg transition-colors text-black shrink-0"
-                title="Copy to clipboard"
-              >
-                {copied ? <Check size={18} className="text-green-900" /> : <Copy size={18} />}
-              </button>
-            </div>
-            <button 
-              onClick={() => setApiKey('')}
-              className="w-full bg-black hover:bg-black/80 text-brand-yellow py-3 rounded-xl font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Done
-            </button>
+
+            {!generatedKey ? (
+              <form onSubmit={handleGenerateKey} className="space-y-5">
+                <h3 className="text-2xl font-bold font-heading">Setup API Key</h3>
+                <p className="text-black/80 text-sm font-medium">
+                  Enter a project name and set a password to register your developer credentials and generate your secure API token.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-black/85">Project Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="e.g. Safe Route App"
+                      value={projectNameInput}
+                      onChange={(e) => {
+                        setProjectNameInput(e.target.value);
+                        if (modalError) setModalError('');
+                      }}
+                      className="w-full bg-[#fef6d2] border border-black/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black font-semibold text-black placeholder-black/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-black/85">Password</label>
+                    <input 
+                      type="password" 
+                      required
+                      placeholder="••••••••"
+                      value={passwordInput}
+                      onChange={(e) => {
+                        setPasswordInput(e.target.value);
+                        if (modalError) setModalError('');
+                      }}
+                      className="w-full bg-[#fef6d2] border border-black/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-black font-semibold text-black placeholder-black/30"
+                    />
+                  </div>
+                </div>
+
+                {modalError && (
+                  <div className="p-3 bg-red-100 border border-red-300 text-red-800 text-xs font-bold rounded-xl flex items-center gap-2">
+                    <span>{modalError}</span>
+                  </div>
+                )}
+
+                <button 
+                  type="submit"
+                  disabled={!projectNameInput.trim() || !passwordInput.trim()}
+                  className="w-full bg-black hover:bg-black/80 text-brand-yellow py-3 rounded-xl font-bold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none shadow-lg"
+                >
+                  Generate Key
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-5">
+                <h3 className="text-2xl font-bold font-heading">Your ASPHR API Key</h3>
+                <p className="text-black/80 text-sm font-medium">
+                  Copy and save this key securely. You won't be able to retrieve it again.
+                </p>
+                <div className="flex items-center gap-2 bg-black/15 p-3 rounded-xl select-all font-mono text-xs text-black border border-black/10 break-all">
+                  <span className="flex-1 select-all">{generatedKey}</span>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedKey);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="p-2 hover:bg-black/10 rounded-lg transition-colors text-black shrink-0"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? <Check size={18} className="text-green-900" /> : <Copy size={18} />}
+                  </button>
+                </div>
+                <button 
+                  onClick={() => setShowSetupModal(false)}
+                  className="w-full bg-black hover:bg-black/80 text-brand-yellow py-3 rounded-xl font-bold transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Done
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
