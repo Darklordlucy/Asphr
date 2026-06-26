@@ -24,7 +24,7 @@ const Navbar = ({ theme = 'dark' }) => {
   const linkClass = `transition-colors hover:text-brand-yellow text-brand-dark font-bold`;
 
   return (
-    <nav className="flex items-center justify-between px-10 py-3 absolute top-0 w-full z-50">
+    <nav className="flex items-center justify-between px-10 py-3 fixed top-0 left-0 w-full z-50 bg-transparent">
       <Logo isLight={isLight} />
       
       <div className="hidden md:flex items-center space-x-10 text-lg">
@@ -35,10 +35,10 @@ const Navbar = ({ theme = 'dark' }) => {
         <Link to="/dashboard" className={linkClass}>Dashboard</Link>
       </div>
 
-      <button className="bg-[#0F2027] hover:bg-black text-white px-6 py-2.5 rounded-full font-sans font-medium text-sm flex items-center transition-all hover:scale-105 active:scale-95 shadow-xl border border-white/10">
+      <Link to="/routes" className="bg-[#0F2027] hover:bg-black text-white px-6 py-2.5 rounded-full font-sans font-medium text-sm flex items-center transition-all hover:scale-105 active:scale-95 shadow-xl border border-white/10">
         <ButtonLogo />
         Start Your Journey
-      </button>
+      </Link>
     </nav>
   );
 };
