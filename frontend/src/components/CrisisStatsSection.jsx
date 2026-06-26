@@ -53,7 +53,10 @@ const CrisisStatsSection = () => {
           The Scale of the Crisis
         </h4>
         <h2 className="text-5xl md:text-7xl font-black leading-tight max-w-4xl mx-auto">
-          1.77 Lakh Indian lives lost on roads.<br/> Every year. No warning. No system.
+          1.77 Lakh Indian lives lost on roads.
+          <span className="block text-lg md:text-3xl font-bold text-brand-dark/80 mt-4 tracking-normal">
+            Every year. No warning. No system.
+          </span>
         </h2>
       </FadeIn>
 

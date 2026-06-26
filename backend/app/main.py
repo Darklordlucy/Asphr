@@ -36,6 +36,10 @@ async def lifespan(app: FastAPI):
             
             # Load ML hazard prediction model (before enrichment so it's available)
             project_root = Path(__file__).resolve().parent.parent.parent
+            if not (project_root / "ml-training").exists():
+                # Fallback to container app root (/app/ml-training)
+                project_root = Path(__file__).resolve().parent.parent
+
             predictor = HazardPredictor.get_instance()
             predictor.load_model(
                 model_path=str(project_root / "ml-training" / "models" / "hazard_model.pkl"),
