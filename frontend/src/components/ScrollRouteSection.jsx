@@ -14,7 +14,7 @@ const ScrollRouteSection = () => {
       subtitle: "Set Origin & Destination",
       desc: "Search for locations on the map. The system reverse-geocodes addresses into geographical coordinates and snaps them to the nearest OSM road node.",
       icon: <Search className="w-6 h-6 text-blue-500" />,
-      howToUse: "Go to the 'Maps' or 'Routes' tab, and enter your origin and destination in the search inputs."
+      howToUse: "Go to the 'Routes' tab, and enter your origin and destination in the search inputs."
     },
     {
       title: "2. Tune your vehicle limits",
@@ -35,14 +35,14 @@ const ScrollRouteSection = () => {
       subtitle: "Inspect Live IoT Heatmaps",
       desc: "Inspect live road friction, potholes, and accident hotspots generated directly from edge hardware accelerometers and gyroscopes on active vehicles.",
       icon: <Eye className="w-6 h-6 text-orange-500" />,
-      howToUse: "Toggle the 'IoT Heatmap' switch on the top right to overlay sensor data."
+      howToUse: "Click on the Maps button to view real time sensor data."
     },
     {
       title: "5. Navigate and save lives",
       subtitle: "Start Safety Navigation",
       desc: "Follow turn-by-turn safe-path routing. The client dashboard logs your journey telemetry, contributing back to the safety network to keep others safe.",
       icon: <Play className="w-6 h-6 text-red-500" />,
-      howToUse: "Click 'Start Your Journey' to open navigation and trigger real-time hazard alerts."
+      howToUse: "Click 'Start Your Journey' to open navigation "
     }
   ];
 
@@ -186,18 +186,18 @@ const ScrollRouteSection = () => {
         </div>
 
         {/* Right Side: Step Content Cards */}
-        <div className="flex-1 w-full max-w-xl flex flex-col justify-center px-4 md:px-8">
-          <div className="mb-4">
-            <span className="inline-block text-blue-500 font-heading font-bold uppercase tracking-[0.2em] text-xs">
+        <div className="flex-1 w-full max-w-3xl flex flex-col justify-center bg-[#8F9D68] text-black p-10 md:p-12 rounded-3xl shadow-xl border border-black/5 relative min-h-[580px] sm:min-h-[520px]">
+          <div className="mb-3">
+            <span className="inline-block text-black/50 font-heading font-bold uppercase tracking-[0.2em] text-xs md:text-sm">
               Interactive Walkthrough
             </span>
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-black text-brand-dark tracking-tight mb-8">
+          <h2 className="text-4xl md:text-5xl font-black text-black tracking-tight mb-8">
             How to Use Asphr
           </h2>
 
-          <div className="relative min-h-[380px] sm:min-h-[350px]">
+          <div className="relative min-h-[400px] sm:min-h-[350px]">
             {steps.map((step, idx) => {
               const isActive = idx === activeIdx;
               return (
@@ -210,28 +210,28 @@ const ScrollRouteSection = () => {
                   }`}
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-white rounded-2xl border border-brand-dark/5 shadow-md">
+                    <div className="p-3.5 bg-white/80 rounded-2xl border border-black/5 shadow-md">
                       {step.icon}
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-brand-dark/45 font-heading">
+                    <span className="text-xs md:text-sm font-bold uppercase tracking-wider text-black/60 font-heading">
                       {step.subtitle}
                     </span>
                   </div>
 
-                  <h3 className="text-2xl md:text-3xl font-black text-brand-dark tracking-tight mb-4">
+                  <h3 className="text-2xl md:text-3xl font-black text-black tracking-tight mb-3">
                     {step.title}
                   </h3>
 
-                  <p className="text-brand-dark/70 text-base md:text-lg leading-relaxed mb-6 font-medium">
+                  <p className="text-black/75 text-base md:text-lg leading-relaxed mb-6 font-medium">
                     {step.desc}
                   </p>
 
-                  <div className="bg-white/50 border border-brand-dark/5 p-5 rounded-2xl">
-                    <div className="flex items-center gap-2 mb-2 text-xs font-extrabold uppercase tracking-wide text-brand-dark/65">
-                      <Sparkles className="w-4 h-4 text-brand-yellow fill-current" />
+                  <div className="bg-white/40 border border-white/20 p-6 rounded-2xl">
+                    <div className="flex items-center gap-2 mb-2 text-xs md:text-sm font-extrabold uppercase tracking-wide text-black/75">
+                      <Sparkles className="w-4 h-4 text-amber-500 fill-current" />
                       <span>Quick Guide</span>
                     </div>
-                    <p className="text-brand-dark/80 text-sm leading-relaxed font-semibold">
+                    <p className="text-black/90 text-sm md:text-base leading-relaxed font-semibold">
                       {step.howToUse}
                     </p>
                   </div>
@@ -247,8 +247,8 @@ const ScrollRouteSection = () => {
                 key={idx}
                 className={`h-2 rounded-full transition-all duration-500 ${
                   idx === activeIdx 
-                    ? 'w-10 bg-blue-500' 
-                    : 'w-2 bg-brand-dark/15'
+                    ? 'w-10 bg-black' 
+                    : 'w-2 bg-black/20'
                 }`}
               />
             ))}
