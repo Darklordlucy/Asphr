@@ -1,15 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
 import Navbar from '../components/Navbar';
-import Map, { NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
+import Map, { NavigationControl, Source, Layer, Popup } from 'react-map-gl/mapbox';
 import { Layers, AlertTriangle, Car, Siren, Loader2, Star, GitFork, Cloud } from 'lucide-react';
 import { fetchHazards, fetchPopularPlaces, fetchWeatherGrid, fetchHeavyTraffic } from '../services/api';
-
-// ── Hazard type → frontend layer id mapping ─────────────────────────────────
-// We group them under the UI layer ids so each toggle shows relevant data.
-const HAZARD_TYPE_MAP = {
-  potholes:      ['pothole', 'potholes', 'road_damage'],
-  hazards:       ['hazard', 'hazards', 'accident', 'general', 'debris', 'accident_prone', 'wet_road'],
-};
 
 // Colour ramp by hazard score (0 → low, 1 → high)
 function hazardColor(score) {
@@ -19,8 +12,144 @@ function hazardColor(score) {
   return '#22C55E';                    // green
 }
 
+const MMR_LANDMARKS = [
+  { name: 'CSMT Station Road', lat: 18.9400, lon: 72.8350 },
+  { name: 'Churchgate Junction', lat: 18.9320, lon: 72.8270 },
+  { name: 'Nariman Point Highway', lat: 18.9270, lon: 72.8220 },
+  { name: 'Marine Lines Flyover', lat: 18.9480, lon: 72.8240 },
+  { name: 'Crawford Market Area', lat: 18.9472, lon: 72.8338 },
+  { name: 'Grant Road Nana Chowk', lat: 18.9610, lon: 72.8120 },
+  { name: 'Byculla Bridge', lat: 18.9750, lon: 72.8330 },
+  { name: 'Mumbai Central Highway', lat: 18.9720, lon: 72.8190 },
+  { name: 'Haji Ali Junction', lat: 18.9790, lon: 72.8120 },
+  { name: 'Lower Parel Senapati Bapat Marg', lat: 19.0010, lon: 72.8290 },
+  { name: 'Worli Naka Junction', lat: 19.0020, lon: 72.8180 },
+  { name: 'Shivaji Park Road', lat: 19.0260, lon: 72.8370 },
+  { name: 'Dadar TT Circle', lat: 19.0178, lon: 72.8478 },
+  { name: 'Prabhadevi Chowk', lat: 19.0160, lon: 72.8290 },
+  { name: 'Mahim Causeway Bridge', lat: 19.0400, lon: 72.8420 },
+  { name: 'Bandra Reclamation Expressway', lat: 19.0480, lon: 72.8350 },
+  { name: 'BKC Avenue Road', lat: 19.0620, lon: 72.8630 },
+  { name: 'Kalanagar Junction Bandra', lat: 19.0590, lon: 72.8520 },
+  { name: 'LBS Marg Kurla', lat: 19.0730, lon: 72.8820 },
+  { name: 'Sion Circle Flyover', lat: 19.0370, lon: 72.8590 },
+  { name: 'Chembur Naka Chowk', lat: 19.0580, lon: 72.8980 },
+  { name: 'SV Road Santacruz', lat: 19.0820, lon: 72.8390 },
+  { name: 'WEH Vile Parle Segment', lat: 19.0980, lon: 72.8520 },
+  { name: 'SV Road Andheri West', lat: 19.1190, lon: 72.8460 },
+  { name: 'Andheri East MIDC Corridor', lat: 19.1200, lon: 72.8750 },
+  { name: 'Powai Hiranandani Road', lat: 19.1220, lon: 72.9100 },
+  { name: 'LBS Marg Ghatkopar', lat: 19.0950, lon: 72.9120 },
+  { name: 'JVLR Powai Segment', lat: 19.1310, lon: 72.8900 },
+  { name: 'WEH Goregaon Flyover', lat: 19.1620, lon: 72.8600 },
+  { name: 'Malad Link Road Crossing', lat: 19.1850, lon: 72.8390 },
+  { name: 'Kandivali Link Road', lat: 19.2060, lon: 72.8350 },
+  { name: 'WEH Borivali East', lat: 19.2250, lon: 72.8620 },
+  { name: 'WEH Dahisar Check Naka', lat: 19.2500, lon: 72.8600 },
+  { name: 'Kanakia Road Mira Road', lat: 19.2800, lon: 72.8550 },
+  { name: 'Bhayandar Station Link', lat: 19.2900, lon: 72.8450 },
+  { name: 'Mulund LBS Road', lat: 19.1750, lon: 72.9480 },
+  { name: 'Teen Hath Naka Thane', lat: 19.1880, lon: 72.9680 },
+  { name: 'Majiwada Junction Thane', lat: 19.2150, lon: 72.9830 },
+  { name: 'Ghodbunder Road Waghbil', lat: 19.2600, lon: 72.9750 },
+  { name: 'Vashi Highway Segment', lat: 19.0650, lon: 72.9980 },
+  { name: 'Nerul Palm Beach Road', lat: 19.0300, lon: 73.0200 },
+  { name: 'Belapur Highway Junction', lat: 19.0150, lon: 73.0400 },
+  { name: 'Kharghar Hiranandani Road', lat: 19.0250, lon: 73.0680 },
+  { name: 'Old Panvel Highway', lat: 18.9950, lon: 73.1150 },
+  { name: 'Kalamboli Circle Express Junction', lat: 19.0220, lon: 73.1050 },
+  { name: 'Airoli Belapur Road', lat: 19.1550, lon: 72.9990 },
+  { name: 'Kopar Khairane Link Road', lat: 19.1000, lon: 73.0100 }
+];
+
+// Generate mock MMR hazard points that cluster around real Mumbai corridors and stay on land
+const mockHazards = (() => {
+  const hazardTypes = [
+    {
+      type: 'Wet Road / Water Logging',
+      descriptions: [
+        'Water accumulation of 6-12 inches on the left lane of {name}. Slow-moving traffic reported.',
+        'Water logging at {name} underpass. Low-clearance vehicles advised to take alternate routes.',
+        'Heavy monsoon flooding near {name}. Expect delays of 15-20 minutes.'
+      ]
+    },
+    {
+      type: 'Accident Prone Zone',
+      descriptions: [
+        'High accident rate reported near {name} due to sharp turns and heavy merging.',
+        'Frequent side-swipe collisions near {name}. Keep a safe distance from heavy vehicles.',
+        'Blind spot alert near {name} exit lane. Reduce speed to 40 km/h.'
+      ]
+    },
+    {
+      type: 'Construction Obstruction',
+      descriptions: [
+        'Ongoing metro infrastructure construction blocking 2 lanes at {name}. Narrow road passage.',
+        'Flyover construction work at {name}. Divert via secondary lanes.',
+        'Road widening and barricades blocking the shoulder area at {name}.'
+      ]
+    },
+    {
+      type: 'Road Debris / Spill',
+      descriptions: [
+        'Reported oil/lubricant spill on {name}. High risk of vehicle skidding.',
+        'Construction debris and loose gravel on the roadway near {name}. Drive slowly.',
+        'Scattered metallic scrap debris on the middle lane at {name}.'
+      ]
+    },
+    {
+      type: 'Severe Pothole Area',
+      descriptions: [
+        'A cluster of deep potholes near {name} causing vehicle deceleration and slowdowns.',
+        'Poor road surface and multiple potholes near {name}. Extreme vibration warning.',
+        'Large crater-type pothole on the right lane of {name}. Hazard cone placed.'
+      ]
+    }
+  ];
+
+  const features = [];
+  for (let i = 0; i < 60; i++) {
+    const landmark = MMR_LANDMARKS[i % MMR_LANDMARKS.length];
+    
+    // Tiny offset (+/- 150m) to keep them strictly aligned with roads on land
+    const latOffset = (Math.random() - 0.5) * 0.003;
+    const lonOffset = (Math.random() - 0.5) * 0.003;
+    const lat = landmark.lat + latOffset;
+    const lon = landmark.lon + lonOffset;
+
+    const hazardInfo = hazardTypes[Math.floor(Math.random() * hazardTypes.length)];
+    const descTemplate = hazardInfo.descriptions[Math.floor(Math.random() * hazardInfo.descriptions.length)];
+    const description = descTemplate.replace('{name}', landmark.name);
+
+    const score = 0.35 + Math.random() * 0.63;
+    let color = '#22C55E';
+    if (score >= 0.75) color = '#EF4444';
+    else if (score >= 0.5) color = '#F97316';
+    else if (score >= 0.25) color = '#EAB308';
+
+    features.push({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [lon, lat]
+      },
+      properties: {
+        id: `mock-hazard-${i}`,
+        hazard_score: parseFloat(score.toFixed(2)),
+        hazard_type: hazardInfo.type,
+        description: description,
+        color: color
+      }
+    });
+  }
+
+  return {
+    type: 'FeatureCollection',
+    features
+  };
+})();
+
 const LAYERS = [
-  { id: 'potholes',       label: 'Potholes',            icon: <AlertTriangle size={18} /> },
   { id: 'heavy_traffic',  label: 'Heavy Zones Traffic', icon: <Car size={18} /> },
   { id: 'popular_places', label: 'Popular Places',      icon: <Star size={18} /> },
   { id: 'hazards',        label: 'Hazards',             icon: <Siren size={18} /> },
@@ -29,7 +158,8 @@ const LAYERS = [
 ];
 
 const Maps = () => {
-  const [activeLayer, setActiveLayer]     = useState('potholes');
+  const [activeLayer, setActiveLayer]     = useState('hazards');
+  const [selectedHazard, setSelectedHazard] = useState(null);
   const [hazardData, setHazardData]       = useState([]);   // raw backend segments
   const [popularPlaces, setPopularPlaces] = useState(null); // GeoJSON FeatureCollection
   const [weatherGrid, setWeatherGrid]     = useState(null); // GeoJSON FeatureCollection
@@ -43,7 +173,7 @@ const Maps = () => {
   const loadHazards = useCallback(async (map) => {
     const bounds = map.getBounds();
     if (!bounds) return;
-    const isSegmentLayer = activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic';
+    const isSegmentLayer = activeLayer === 'road_segments';
     if (isSegmentLayer) {
       setLoading(true);
     }
@@ -82,6 +212,19 @@ const Maps = () => {
     }
   }, []);
 
+  const onMapClick = useCallback((event) => {
+    const feature = event.features && event.features[0];
+    if (feature && feature.layer.id === 'hazards-circles') {
+      setSelectedHazard({
+        longitude: event.lngLat.lng,
+        latitude: event.lngLat.lat,
+        properties: feature.properties
+      });
+    } else {
+      setSelectedHazard(null);
+    }
+  }, []);
+
   const handleMapLoad = useCallback((e) => {
     const map = e.target;
     mapRef.current = map;
@@ -89,14 +232,14 @@ const Maps = () => {
     if (map.getLayer('background')) map.setPaintProperty('background', 'background-color', '#fef6d2');
     if (map.getLayer('water'))      map.setPaintProperty('water', 'fill-color', '#fef6d2');
     // Initial fetch for segment/hazard layers
-    const isSegmentLayer = activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic';
+    const isSegmentLayer = activeLayer === 'road_segments';
     if (isSegmentLayer) {
       loadHazards(map);
     }
   }, [loadHazards, activeLayer]);
 
   const handleMoveEnd = useCallback((e) => {
-    const isSegmentLayer = activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic';
+    const isSegmentLayer = activeLayer === 'road_segments';
     if (isSegmentLayer) {
       loadHazards(e.target);
     }
@@ -134,12 +277,7 @@ const Maps = () => {
 
   // ── Filter segments for the active UI layer ────────────────────────────────
   const filteredSegments = hazardData.filter((seg) => {
-    if (activeLayer === 'road_segments') {
-      return true;
-    }
-    const allowedTypes = HAZARD_TYPE_MAP[activeLayer] || [];
-    const t = (seg.hazard_type || '').toLowerCase();
-    return allowedTypes.some((allowed) => t.includes(allowed));
+    return activeLayer === 'road_segments';
   });
 
   // Build a single GeoJSON FeatureCollection from the filtered segments
@@ -173,8 +311,35 @@ const Maps = () => {
           mapStyle="mapbox://styles/mapbox/light-v11"
           onLoad={handleMapLoad}
           onMoveEnd={handleMoveEnd}
+          onClick={onMapClick}
+          interactiveLayerIds={activeLayer === 'hazards' ? ['hazards-circles'] : []}
         >
           <NavigationControl position="bottom-right" />
+
+          {selectedHazard && (
+            <Popup
+              longitude={selectedHazard.longitude}
+              latitude={selectedHazard.latitude}
+              anchor="bottom"
+              onClose={() => setSelectedHazard(null)}
+              closeOnClick={false}
+              className="z-50"
+            >
+              <div className="p-3 max-w-[240px] text-black">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3.5 h-3.5 rounded-full flex-shrink-0" style={{ backgroundColor: selectedHazard.properties.color }} />
+                  <h3 className="font-bold text-sm text-gray-900 leading-tight">{selectedHazard.properties.hazard_type}</h3>
+                </div>
+                <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                  {selectedHazard.properties.description}
+                </p>
+                <div className="flex justify-between items-center text-[10px] text-gray-500 font-bold mt-3 pt-2 border-t border-gray-200/60">
+                  <span>SEVERITY</span>
+                  <span className="text-gray-900">{selectedHazard.properties.hazard_score} / 1.0</span>
+                </div>
+              </div>
+            </Popup>
+          )}
 
           {/* Popular Places layer */}
           {activeLayer === 'popular_places' && popularPlaces && (
@@ -298,16 +463,48 @@ const Maps = () => {
             </Source>
           )}
 
-          {/* Hazard/Road segments layer */}
-          {activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic' && fetchedOnce && (
+          {/* Road segments line layer */}
+          {activeLayer === 'road_segments' && fetchedOnce && (
             <Source id="hazards" type="geojson" data={geojson}>
               <Layer
                 id="hazard-lines"
                 type="line"
                 paint={{
                   'line-color': ['get', 'color'],
-                  'line-width': activeLayer === 'road_segments' ? 2 : 4,
+                  'line-width': 2,
                   'line-opacity': 0.85,
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Hazards mock point layer */}
+          {activeLayer === 'hazards' && (
+            <Source id="hazards-source" type="geojson" data={mockHazards}>
+              <Layer
+                id="hazards-circles"
+                type="circle"
+                paint={{
+                  'circle-radius': 8,
+                  'circle-color': ['get', 'color'],
+                  'circle-stroke-width': 2,
+                  'circle-stroke-color': '#FFFFFF',
+                  'circle-opacity': 0.85,
+                }}
+              />
+              <Layer
+                id="hazards-labels"
+                type="symbol"
+                layout={{
+                  'text-field': ['get', 'hazard_type'],
+                  'text-size': 10,
+                  'text-offset': [0, 1.2],
+                  'text-anchor': 'top',
+                }}
+                paint={{
+                  'text-color': '#1f2937',
+                  'text-halo-color': '#FFFFFF',
+                  'text-halo-width': 1.5,
                 }}
               />
             </Source>
@@ -417,11 +614,11 @@ const Maps = () => {
                   </>
                 )}
 
-                {activeLayer !== 'popular_places' && activeLayer !== 'weather_grid' && activeLayer !== 'heavy_traffic' && activeLayer !== 'road_segments' && (
+                {activeLayer === 'hazards' && (
                   <>
                     <div className="flex justify-between text-[11px] font-bold text-black/60 uppercase tracking-widest">
-                      <span>Segments loaded</span>
-                      <span>{filteredCount} / {totalCount}</span>
+                      <span>Hazards loaded</span>
+                      <span>{mockHazards.features.length}</span>
                     </div>
                     {/* Colour legend */}
                     <div className="flex gap-2 flex-wrap">
